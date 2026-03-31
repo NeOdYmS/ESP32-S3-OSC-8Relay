@@ -31,6 +31,7 @@ AppCfg ConfigStore::defaults() {
   c.apIp   = IPAddress(192,168,4,1);
   c.apGw   = IPAddress(192,168,4,1);
   c.apMask = IPAddress(255,255,255,0);
+  c.apTimeoutMin = 5;              // 5 minutes par défaut, 0 = infini
 
   for (int i=0;i<8;i++) {
     snprintf(c.relays[i].oscAddress, sizeof(c.relays[i].oscAddress), "/relay/%d", i+1);
@@ -85,6 +86,7 @@ bool ConfigStore::load(AppCfg& out) {
   if (prefs.getBytes("apIp", b, 4) > 0) c.apIp = bytesToIp(b);
   if (prefs.getBytes("apGw", b, 4) > 0) c.apGw = bytesToIp(b);
   if (prefs.getBytes("apMs", b, 4) > 0) c.apMask = bytesToIp(b);
+  c.apTimeoutMin = prefs.getUShort("apTout", c.apTimeoutMin);
 
   for (int i=0;i<8;i++) {
     char key[16];
@@ -126,6 +128,7 @@ bool ConfigStore::save(const AppCfg& in) {
   ipToBytes(in.apIp, b);     prefs.putBytes("apIp", b, 4);
   ipToBytes(in.apGw, b);     prefs.putBytes("apGw", b, 4);
   ipToBytes(in.apMask, b);   prefs.putBytes("apMs", b, 4);
+  prefs.putUShort("apTout", in.apTimeoutMin);
 
   for (int i=0;i<8;i++) {
     char key[16];

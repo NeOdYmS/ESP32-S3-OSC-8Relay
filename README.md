@@ -16,6 +16,7 @@ Firmware pour la carte **Waveshare ESP32-S3-ETH-8DI-8RO** permettant de piloter 
 - **Persistance** : configuration et état des relais sauvegardés en flash (NVS)
 - **Modes de relais** : Latch (valeur directe ON/OFF) ou Toggle (basculement)
 - **Inversion logique** configurable par relais
+- **Mise en veille AP** : timeout configurable (défaut 5 min, 0 = toujours actif)
 - **LED RGB** de statut (WS2812) : bleu au boot, vert = OK, rouge = erreur
 - **Watchdog** matériel (10s) pour redémarrage automatique en cas de crash
 - **Protection mutex** contre les accès concurrents Web/OSC aux relais
@@ -140,13 +141,19 @@ Configuration de l'Ethernet (W5500) et du point d'accès Wi-Fi.
 ![Onglet Réseau](docs/screenshots/tab_network.png)
 
 - **Ethernet** : IP statique ou DHCP, masque, passerelle, DNS, port OSC
-- **Wi-Fi AP** : SSID, mot de passe, IP du point d'accès
+- **Wi-Fi AP** : SSID, mot de passe, IP du point d'accès, **délai de mise en veille** (0 = infini)
 
 ### Onglet Système
 
-Informations système, redémarrage et réinitialisation usine.
+Informations système en temps réel, redémarrage et réinitialisation usine.
 
 ![Onglet Système](docs/screenshots/tab_system.png)
+
+- **Uptime** : temps depuis le dernier redémarrage
+- **RAM libre / min** : mémoire disponible et minimum atteint
+- **Ethernet** : état de connexion et IP
+- **WiFi AP** : état, SSID, IP, nombre de clients, mise en veille
+- **Relais actifs** : nombre de relais allumés / 8
 
 ---
 
@@ -183,7 +190,7 @@ Informations système, redémarrage et réinitialisation usine.
 | `/ap` | `1` | Allumer le point d'accès Wi-Fi |
 | `/ap` | `0` | Éteindre le point d'accès Wi-Fi |
 
-> L'AP s'éteint automatiquement après **5 minutes sans client** connecté. La commande `/ap 1` le rallume à tout moment.
+> L'AP s'éteint automatiquement après le **délai de mise en veille configuré** (5 min par défaut, configurable via l'interface Web, 0 = toujours actif). La commande `/ap 1` le rallume à tout moment.
 
 ### Types de données acceptés
 
@@ -353,6 +360,7 @@ curl http://192.168.4.1/api/system/status
 | **Adresses OSC** | `/relay/1` à `/relay/8` |
 | **Mode relais** | Latch (tous) |
 | **Inversion** | Désactivée (tous) |
+| **Mise en veille AP** | `5` minutes (0 = toujours actif) |
 
 ---
 

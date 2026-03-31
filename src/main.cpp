@@ -45,7 +45,7 @@ static unsigned long gLastStatusUpdate = 0;
 static unsigned long gLastWatchdogFeed = 0;
 
 // 📡 AP auto-management
-static constexpr unsigned long AP_TIMEOUT_MS = 5 * 60 * 1000;  // 5 minutes
+// AP timeout calculé dynamiquement depuis gCfg.apTimeoutMin
 static unsigned long gApLastClientSeen = 0;  // dernier moment avec client connecté
 static bool gApForcedOff = false;            // désactivé via OSC
 
@@ -197,6 +197,7 @@ void setupWebServer() {
     doc["apIp"] = gCfg.apIp.toString();
     doc["apGw"] = gCfg.apGw.toString();
     doc["apMask"] = gCfg.apMask.toString();
+    doc["apTimeoutMin"] = gCfg.apTimeoutMin;
 
     // Configuration des relais
     JsonArray relays = doc.createNestedArray("relays");
@@ -343,6 +344,7 @@ void setupWebServer() {
     gCfg.apIp.fromString(doc["apIp"].as<String>());
     gCfg.apMask.fromString(doc["apMask"].as<String>());
     gCfg.apGw.fromString(doc["apGw"].as<String>());
+    gCfg.apTimeoutMin = doc["apTimeoutMin"] | 5;
 
     gStore.save(gCfg);
     gWeb.send(200, "text/plain", "OK");
@@ -365,6 +367,7 @@ void setupWebServer() {
     doc["minFreeHeap"] = ESP.getMinFreeHeap();
     doc["oscPort"] = gCfg.oscListenPort;
     doc["apSsid"] = gCfg.apSsid;
+    doc["apTimeoutMin"] = gCfg.apTimeoutMin;
     JsonArray relays = doc.createNestedArray("relays");
     for (int i = 0; i < 8; i++) relays.add(gRelayLogical[i]);
     doc["apClients"] = WiFi.softAPgetStationNum();
@@ -547,9 +550,10 @@ void loop() {
       // Client connecté → reset du timer
       gApLastClientSeen = now;
       // Rallumer l'AP si elle était éteinte (ne devrait pas arriver si client connecté)
-    } else if (NETMGR.isWiFiAPActive() && (now - gApLastClientSeen >= AP_TIMEOUT_MS)) {
-      // Pas de client depuis 5 min → éteindre l'AP
-      LOG_WARN("AP", "📡 No clients for 5 min, shutting down AP");
+    } else if (gCfg.apTimeoutMin > 0 && NETMGR.isWiFiAPActive() &&
+               (now - gApLastClientSeen >= (unsigned long)gCfg.apTimeoutMin * 60UL * 1000UL)) {
+      // Pas de client depuis le timeout configuré → éteindre l'AP
+      LOG_WARN("AP", "📡 No clients for %u min, shutting down AP", gCfg.apTimeoutMin);
       NETMGR.stopWiFiAP();
       gWiFiApActive = false;
     }
