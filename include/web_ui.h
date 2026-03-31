@@ -166,6 +166,11 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
             <label>Passerelle AP</label>
             <input id="apGw" placeholder="192.168.4.1">
           </div>
+          <div class="form-group">
+            <label>Mise en veille AP (minutes)</label>
+            <input id="apTimeout" type="number" min="0" placeholder="5">
+            <small style="color:#888;">0 = toujours actif (pas de mise en veille)</small>
+          </div>
         </div>
         <div class="button-group">
           <button id="saveAp">💾 Sauvegarder</button>
@@ -180,11 +185,18 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
         <h2>ℹ️ Informations Système</h2>
         <div class="grid-2">
           <div><strong>Modèle:</strong> ESP32-S3-ETH-8DI-8RO</div>
-          <div><strong>CPU:</strong> <span id="sysUptime">—</span></div>
+          <div><strong>Uptime:</strong> <span id="sysUptime">—</span></div>
           <div><strong>RAM libre:</strong> <span id="sysRam">—</span></div>
+          <div><strong>RAM min:</strong> <span id="sysRamMin">—</span></div>
+          <div><strong>Ethernet:</strong> <span id="sysEthState">—</span></div>
           <div><strong>IP Ethernet:</strong> <span id="sysEthIp">—</span></div>
-          <div><strong>État WiFi:</strong> <span id="sysWifiState">—</span></div>
-          <div><strong>SSID WiFi:</strong> <span id="sysWifiSsid">—</span></div>
+          <div><strong>Port OSC:</strong> <span id="sysOscPort">—</span></div>
+          <div><strong>WiFi AP:</strong> <span id="sysWifiState">—</span></div>
+          <div><strong>SSID:</strong> <span id="sysWifiSsid">—</span></div>
+          <div><strong>IP AP:</strong> <span id="sysWifiIp">—</span></div>
+          <div><strong>Clients AP:</strong> <span id="sysApClients">—</span></div>
+          <div><strong>Mise en veille AP:</strong> <span id="sysApTimeout">—</span></div>
+          <div><strong>Relais actifs:</strong> <span id="sysRelays">—</span></div>
         </div>
       </div>
 
@@ -248,6 +260,7 @@ v1.0.0 - Janvier 2025
         document.getElementById('apIp').value = cfg.apIp;
         document.getElementById('apMask').value = cfg.apMask;
         document.getElementById('apGw').value = cfg.apGw;
+        document.getElementById('apTimeout').value = cfg.apTimeoutMin;
 
         // Relays
         const relayCtrlGrid = document.getElementById('relayControlGrid');
@@ -429,7 +442,8 @@ v1.0.0 - Janvier 2025
         apPass: document.getElementById('apPass').value,
         apIp: document.getElementById('apIp').value,
         apMask: document.getElementById('apMask').value,
-        apGw: document.getElementById('apGw').value
+        apGw: document.getElementById('apGw').value,
+        apTimeoutMin: parseInt(document.getElementById('apTimeout').value) || 0
       };
       try {
         const resp = await fetch(`${API_BASE}/config/ap`, {
@@ -474,6 +488,20 @@ v1.0.0 - Janvier 2025
         const heapMin = (s.minFreeHeap/1024).toFixed(0);
         const now = new Date().toLocaleTimeString('fr-FR');
         const line = `[${now}] uptime=${s.uptime} ETH=${s.ethConnected?'✓':'✗'} IP=${s.ethIp} | AP=${s.wifiApActive?'UP':'DOWN'} SSID=${s.apSsid} Clients=${s.apClients} | OSC:${s.oscPort} | RAM=${heap}K (min:${heapMin}K) | ${relayStr}`;
+        // Update system info tab fields
+        document.getElementById('sysUptime').textContent = s.uptime;
+        document.getElementById('sysRam').textContent = heap + ' KB';
+        document.getElementById('sysRamMin').textContent = heapMin + ' KB';
+        document.getElementById('sysEthState').textContent = s.ethConnected ? '✅ Connecté' : '❌ Déconnecté';
+        document.getElementById('sysEthIp').textContent = s.ethIp;
+        document.getElementById('sysOscPort').textContent = s.oscPort;
+        document.getElementById('sysWifiState').textContent = s.wifiApActive ? '✅ Actif' : '⏸️ Inactif';
+        document.getElementById('sysWifiSsid').textContent = s.apSsid;
+        document.getElementById('sysWifiIp').textContent = s.wifiApActive ? s.wifiApIp : '—';
+        document.getElementById('sysApClients').textContent = s.apClients;
+        document.getElementById('sysApTimeout').textContent = s.apTimeoutMin === 0 ? 'Désactivée (toujours actif)' : s.apTimeoutMin + ' min';
+        const activeCount = s.relays.filter(v => v).length;
+        document.getElementById('sysRelays').textContent = activeCount + ' / 8';
         // Append new line, keep max lines
         let lines = el.textContent === 'Connexion...' ? [] : el.textContent.split('\n');
         lines.push(line);

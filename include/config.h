@@ -36,6 +36,7 @@ struct AppCfg {
   IPAddress apIp;
   IPAddress apGw;
   IPAddress apMask;
+  uint16_t apTimeoutMin;           // auto-shutdown AP sans client (minutes, 0 = infini)
 
   RelayCfg relays[8];
 };
