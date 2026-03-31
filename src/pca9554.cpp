@@ -1,4 +1,5 @@
 #include "pca9554.h"
+#include "logger.h"
 
 bool PCA9554::begin(TwoWire& w, int sda, int scl, uint32_t freq_hz) {
   Serial.printf("[PCA9554] Starting init: SDA=%d SCL=%d FREQ=%u addr=0x%02X\n", sda, scl, freq_hz, _addr);
@@ -48,7 +49,7 @@ bool PCA9554::writeAll(bool ch[8]) {
     if (ch[i]) val |= (1 << i);
   }
 
-  Serial.printf("[PCA9554] writeAll -> mask=0x%02X\n", val);
+  LOG_RELAY("PCA9554", "writeAll mask=0x%02X", val);
   return writeReg(0x01, val);
 }
 
@@ -61,7 +62,7 @@ bool PCA9554::writeChannel(uint8_t ch, bool on) {
     _out &= ~(1 << ch);
   }
 
-  Serial.printf("[PCA9554] writeChannel ch=%d state=%s outMask=0x%02X\n", ch, on ? "ON" : "OFF", _out);
+  LOG_RELAY("PCA9554", "ch=%d %s mask=0x%02X", ch, on ? "ON" : "OFF", _out);
   return writeReg(0x01, _out);
 }
 
@@ -85,14 +86,13 @@ bool PCA9554::writeReg(uint8_t reg, uint8_t value) {
   _wire->write(value);
   int err = _wire->endTransmission();
 
-  Serial.printf("[PCA9554] writeReg(0x%02X, 0x%02X) -> err=%d %s\n", 
-    reg, value, err, err == 0 ? "OK" : "FAIL");
-
-  if (err == 0) {
-    if (reg == 0x01) _out = value;
-    return true;
+  if (err != 0) {
+    LOG_ERROR("PCA9554", "writeReg(0x%02X, 0x%02X) FAIL err=%d", reg, value, err);
+    return false;
   }
-  return false;
+
+  if (reg == 0x01) _out = value;
+  return true;
 }
 
 bool PCA9554::readReg(uint8_t reg, uint8_t& value) {

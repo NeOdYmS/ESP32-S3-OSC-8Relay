@@ -43,6 +43,7 @@ static bool gEthLinked = false;
 static IPAddress gEthIp(0, 0, 0, 0);
 static bool gWiFiApActive = false;
 static unsigned long gLastOscLoop = 0;
+static unsigned long gLastWebLoop = 0;
 static unsigned long gLastStatusUpdate = 0;
 static unsigned long gLastWatchdogFeed = 0;
 
@@ -62,6 +63,11 @@ struct OscLogEntry {
 static OscLogEntry gOscLog[OSC_LOG_SIZE];
 static int gOscLogHead = 0;
 static int gOscLogCount = 0;
+
+// 💾 Deferred NVS save: avoid blocking flash writes in OSC hot path
+static bool gRelayStatesDirty = false;
+static unsigned long gRelayDirtyTime = 0;
+static constexpr unsigned long NVS_SAVE_DEFER_MS = 500;  // save 500ms after last change
 
 void recordOscMessage(const char* address, const char* typeTag, const char* valueStr) {
   OscLogEntry& e = gOscLog[gOscLogHead];
@@ -120,8 +126,9 @@ void handleRelayCommand(uint8_t relayIdx, bool newState) {
   // Appliquer l'état physique au PCA9554
   updatePhysicalRelay(relayIdx);
 
-  // � Sauvegarder l'état en NVS pour persistance
-  gStore.saveRelayStates(gRelayLogical);
+  // 💾 Marquer pour sauvegarde différée (évite écriture flash bloquante dans le hot path OSC)
+  gRelayStatesDirty = true;
+  gRelayDirtyTime = millis();
 
   // �📝 Log détaillé pour traçabilité
   LOG_RELAY("RELAY", 
@@ -625,30 +632,29 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
+  // ⚡ OSC MESSAGE HANDLING — PRIORITÉ MAXIMALE — exécuté à chaque itération
+  // Pas de throttle : chaque passage dans loop() vérifie les paquets UDP
+  gOsc.loop();
+
   // 🔄 WATCHDOG FEED (toutes les 100ms)
-  // Alimente le chien de garde pour éviter un redémarrage
   if (now - gLastWatchdogFeed >= 100) {
     WATCHDOG.feed();
     gLastWatchdogFeed = now;
   }
 
-  // 📡 OSC MESSAGE HANDLING (toutes les 10ms)
-  // Écoute les messages OSC entrants et déclenche les relais
-  if (now - gLastOscLoop >= 10) {
-    try {
-      gOsc.loop();
-    } catch (...) {
-      LOG_ERROR("OSC", "❌ Exception in OSC loop!");
-      LedStatus::error();
-    }
-    gLastOscLoop = now;
+  // 💾 DEFERRED NVS SAVE (500ms après dernière commande relais)
+  // Évite les écritures flash bloquantes (~5-20ms) dans le chemin OSC critique
+  if (gRelayStatesDirty && (now - gRelayDirtyTime >= NVS_SAVE_DEFER_MS)) {
+    gStore.saveRelayStates(gRelayLogical);
+    gRelayStatesDirty = false;
   }
 
-  // 🌐 WEB SERVER HANDLING (serveur synchrone - nécessite handleClient())
-  gWeb.handleClient();
-
-  // 🌐 DNS captive portal processing
-  gDns.processNextRequest();
+  // 🌐 WEB + DNS HANDLING (toutes les 5ms — suffisant pour l'UI)
+  if (now - gLastWebLoop >= 5) {
+    gWeb.handleClient();
+    gDns.processNextRequest();
+    gLastWebLoop = now;
+  }
 
   // � AP AUTO-MANAGEMENT (vérifier toutes les 5 secondes)
   if (!gApForcedOff && now - gLastStatusUpdate >= 5000) {
@@ -691,6 +697,6 @@ void loop() {
     }
   }
 
-  // Petite pause pour éviter un loop trop agressif
-  delay(1);
+  // Petite pause pour céder au scheduler FreeRTOS (yield sans bloquer)
+  yield();
 }

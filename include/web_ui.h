@@ -217,6 +217,16 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
       <div class="card">
         <h2>📝 Changelog</h2>
         <pre style="background: #0d1117; padding: 12px; border-radius: 6px; font-size: 12px; overflow: auto; max-height: 300px;">
+v1.2.0 - Mars 2026
+- Optimisation latence OSC : boucle prioritaire sans throttle
+- Drain complet des paquets UDP par cycle (multi-packet par pass)
+- Sauvegarde NVS différée (500ms) pour ne pas bloquer le relais
+- Web/DNS throttlé à 5ms pour libérer le CPU au profit de l'OSC
+- Remplacement delay(1) par yield() dans la boucle principale
+- Logs PCA9554 non-bloquants (macros LOG_RELAY/LOG_ERROR)
+- Portail captif DNS pour redirection auto après connexion WiFi
+- Résultats latence : ~0.5-1.2ms OSC→relais, ~70k msg/s throughput
+
 v1.1.0 - Mars 2026
 - Log unifié temps réel : messages système (vert) + OSC entrants (bleu) fusionnés dans le header
 - Affichage des messages OSC entrants avec adresse, type tag et valeur

@@ -109,8 +109,8 @@ bool OscRelayRouter::parseOscMessage(const uint8_t* data, size_t len) {
     }
   }
 
-  // Fire log callback for all parsed messages
-  if (_logCb) _logCb(address, typeTag, valueStr);
+  // Fire log callback for all parsed messages (AFTER routing for lower latency)
+  // Moved below relay dispatch to not delay relay actuation
 
   // Check system commands (/ap)
   if (strncmp(address, "/ap", 3) == 0) {
@@ -118,6 +118,7 @@ bool OscRelayRouter::parseOscMessage(const uint8_t* data, size_t len) {
     if (extractBoolValue(data, len, tagsStart, val)) {
       LOG_OSC("OSC", "System command: %s -> %d", address, val);
       if (_sysCb) _sysCb(address, val);
+      if (_logCb) _logCb(address, typeTag, valueStr);
       return true;
     }
   }
@@ -132,6 +133,7 @@ bool OscRelayRouter::parseOscMessage(const uint8_t* data, size_t len) {
           _cb(i, newState);
         }
       }
+      if (_logCb) _logCb(address, typeTag, valueStr);
       return true;
     }
   }
@@ -146,29 +148,36 @@ bool OscRelayRouter::parseOscMessage(const uint8_t* data, size_t len) {
         if (_cb) {
           _cb(i, newState);
         }
+        // Log callback after relay actuation
+        if (_logCb) _logCb(address, typeTag, valueStr);
         return true;
       }
     }
   }
 
+  // No relay matched — still log unmatched messages
+  if (_logCb) _logCb(address, typeTag, valueStr);
   return false;
 }
 
 void OscRelayRouter::loop() {
   if (!_running || !_cfg || !_cb) return;
 
-  int packetSize = _udp.parsePacket();
-  if (packetSize <= 0) return;
+  // Drain all pending packets in one pass for minimum latency
+  for (;;) {
+    int packetSize = _udp.parsePacket();
+    if (packetSize <= 0) break;
 
-  if (packetSize > (int)sizeof(_rxBuffer)) {
-    packetSize = sizeof(_rxBuffer);
+    if (packetSize > (int)sizeof(_rxBuffer)) {
+      packetSize = sizeof(_rxBuffer);
+    }
+
+    int bytesRead = _udp.read(_rxBuffer, packetSize);
+    if (bytesRead <= 0) continue;
+
+    // Parse OSC message
+    parseOscMessage(_rxBuffer, bytesRead);
   }
-
-  int bytesRead = _udp.read(_rxBuffer, packetSize);
-  if (bytesRead <= 0) return;
-
-  // Parse OSC message
-  parseOscMessage(_rxBuffer, bytesRead);
 }
 
 void OscRelayRouter::stop() {

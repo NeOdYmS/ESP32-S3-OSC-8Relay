@@ -23,6 +23,27 @@ Firmware pour la carte **Waveshare ESP32-S3-ETH-8DI-8RO** permettant de piloter 
 - **LED RGB** de statut (WS2812) : bleu au boot, vert = OK, rouge = erreur
 - **Watchdog** matériel (10s) pour redémarrage automatique en cas de crash
 - **Protection mutex** contre les accès concurrents Web/OSC aux relais
+- **Portail captif** : redirection automatique vers l'interface Web à la connexion WiFi
+- **Boucle OSC prioritaire** : drain multi-paquets, sauvegarde NVS différée, ~0.5-1.2ms de latence
+
+---
+
+## ⚡ Performances OSC (v1.2.0)
+
+Résultats mesurés sur Ethernet W5500 (UDP, 192.168.0.1:8000) :
+
+| Métrique | Résultat |
+|---|---|
+| **Latence UDP envoi** | ~100 µs (min 32 µs) |
+| **Ping réseau W5500 (ICMP)** | 0.3 - 0.77 ms (avg 0.54 ms) |
+| **Burst 8 relais** | ~1 ms pour les 8 |
+| **Throughput max** | ~70 000 msg/s |
+| **Latence totale OSC → relais** | **~0.5 - 1.2 ms** |
+
+Décomposition de la latence totale :
+- Réseau UDP W5500 : ~0.3-0.7 ms
+- Parsing OSC ESP32 : ~0.01-0.05 ms
+- Écriture I2C PCA9554 (100 kHz) : ~0.2-0.5 ms
 
 ---
 
