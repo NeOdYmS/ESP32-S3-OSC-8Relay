@@ -48,6 +48,32 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
     .message { padding: 8px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 8px; }
     .message.error { background: rgba(248, 81, 73, 0.1); color: #f85149; }
     .message.success { background: rgba(63, 185, 80, 0.1); color: #3fb950; }
+
+    /* Responsive mobile */
+    @media (max-width: 768px) {
+      header { padding: 12px; }
+      h1 { font-size: 20px; }
+      main { padding: 10px; }
+      .tabs { gap: 4px; }
+      .tab-btn { padding: 8px 10px; font-size: 13px; flex: 1; text-align: center; min-width: 0; }
+      .grid-4 { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .grid-2 { grid-template-columns: 1fr; gap: 10px; }
+      .card { padding: 12px; margin-bottom: 10px; }
+      .card h2 { font-size: 16px; }
+      .relay-card { padding: 10px; }
+      .button-group { flex-direction: column; }
+      .button-group button { width: 100%; }
+      #unifiedLog { max-height: 120px; font-size: 10px; padding: 6px 8px; }
+      .relay-btn { padding: 12px; font-size: 14px; }
+      input, select { font-size: 14px; padding: 10px 12px; }
+      button { padding: 12px 16px; font-size: 14px; }
+    }
+    @media (max-width: 480px) {
+      .grid-4 { grid-template-columns: 1fr 1fr; gap: 6px; }
+      .tab-btn { padding: 8px 6px; font-size: 12px; }
+      #unifiedLog { max-height: 100px; font-size: 9px; }
+      h1 { font-size: 18px; }
+    }
   </style>
 </head>
 <body>
@@ -217,6 +243,13 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
       <div class="card">
         <h2>📝 Changelog</h2>
         <pre style="background: #0d1117; padding: 12px; border-radius: 6px; font-size: 12px; overflow: auto; max-height: 300px;">
+v1.2.3 - Mars 2026
+- Refresh log OSC x4 : 1000ms → 250ms pour suivi temps réel
+- Refresh status système : 3000ms → 2000ms
+- Refresh état relais : 2000ms → 1000ms
+- UI responsive mobile : adaptation auto smartphone/tablette (media queries)
+- Grilles 4→2 colonnes sur mobile, boutons pleine largeur, inputs tactiles agrandis
+
 v1.2.2 - Mars 2026
 - LED bleue sur réception OSC : flash bleu 50ms à chaque message OSC reçu
 - Retour automatique au vert après le flash
@@ -615,9 +648,9 @@ v1.0.0 - Janvier 2026
     updateWifiQR();
     document.getElementById('apSsid').addEventListener('input', updateWifiQR);
     document.getElementById('apPass').addEventListener('input', updateWifiQR);
-    setInterval(updateRelayStatus, 2000);
-    setInterval(updateStatusLog, 3000);
-    setInterval(updateOscLog, 1000);
+    setInterval(updateRelayStatus, 1000);
+    setInterval(updateStatusLog, 2000);
+    setInterval(updateOscLog, 250);
   </script>
 </body>
 </html>)HTML";
