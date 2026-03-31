@@ -125,6 +125,15 @@ void NetworkManager::startWiFiAP(const AppCfg* cfg) {
   LOG_INFO("WiFi", "AP Started: SSID=%s, IP=%s", cfg->apSsid, _wifiApIp.toString().c_str());
 }
 
+void NetworkManager::stopWiFiAP() {
+  if (!_wifiApActive) return;
+  LOG_INFO("WiFi", "Stopping WiFi AP...");
+  WiFi.softAPdisconnect(true);
+  WiFi.mode(WIFI_STA);
+  _wifiApActive = false;
+  LOG_INFO("WiFi", "AP stopped");
+}
+
 void NetworkManager::applyNetworkConfig(const AppCfg* cfg) {
   LOG_INFO("NET", "Applying network configuration");
   

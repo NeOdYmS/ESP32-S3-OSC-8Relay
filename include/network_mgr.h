@@ -13,6 +13,7 @@ public:
   void begin(const AppCfg* cfg);
   void startEthernet(const AppCfg* cfg);
   void startWiFiAP(const AppCfg* cfg);
+  void stopWiFiAP();
   void applyNetworkConfig(const AppCfg* cfg);
   void hotReloadNetwork(const AppCfg* cfg);
   void stop();

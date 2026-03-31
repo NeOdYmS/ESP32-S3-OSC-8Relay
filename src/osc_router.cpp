@@ -87,6 +87,16 @@ bool OscRelayRouter::parseOscMessage(const uint8_t* data, size_t len) {
 
   if (tagsStart >= (int)len || data[tagsStart] != ',') return false;
 
+  // Check system commands (/ap)
+  if (strncmp(address, "/ap", 3) == 0) {
+    bool val = false;
+    if (extractBoolValue(data, len, tagsStart, val)) {
+      LOG_OSC("OSC", "System command: %s -> %d", address, val);
+      if (_sysCb) _sysCb(address, val);
+      return true;
+    }
+  }
+
   // Check ALL ON/OFF address
   if (strcmp(address, "/relay/all") == 0) {
     bool newState = false;

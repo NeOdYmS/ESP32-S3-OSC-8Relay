@@ -10,8 +10,10 @@
 class OscRelayRouter {
 public:
   using RelayCallback = std::function<void(uint8_t relayIndex, bool newLogicalState)>;
+  using SystemCallback = std::function<void(const char* address, bool value)>;
 
   bool begin(uint16_t listenPort, const AppCfg* cfg, RelayCallback cb);
+  void setSystemCallback(SystemCallback cb) { _sysCb = cb; }
   void setConfig(const AppCfg* cfg);
   void loop();
   void stop();
@@ -22,6 +24,7 @@ private:
   EthernetUDP _udp;
   const AppCfg* _cfg = nullptr;
   RelayCallback _cb;
+  SystemCallback _sysCb;
   uint16_t _port = 0;
   bool _running = false;
   uint8_t _rxBuffer[RX_BUF];

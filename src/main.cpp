@@ -44,9 +44,15 @@ static unsigned long gLastOscLoop = 0;
 static unsigned long gLastStatusUpdate = 0;
 static unsigned long gLastWatchdogFeed = 0;
 
+// 📡 AP auto-management
+static constexpr unsigned long AP_TIMEOUT_MS = 5 * 60 * 1000;  // 5 minutes
+static unsigned long gApLastClientSeen = 0;  // dernier moment avec client connecté
+static bool gApForcedOff = false;            // désactivé via OSC
+
 // ========== FORWARD DECLARATIONS ==========
 void setupWebServer();
 void handleRelayCommand(uint8_t relayIdx, bool newState);
+void handleSystemOsc(const char* address, bool value);
 void updatePhysicalRelay(uint8_t idx);
 void updateAllPhysicalRelays();
 void setupRGB(uint8_t r, uint8_t g, uint8_t b);
@@ -120,6 +126,28 @@ void updateAllPhysicalRelays() {
     physical[i] = gRelayLogical[i] ^ gCfg.relays[i].invert;
   }
   gRelayExpander.writeAll(physical);
+}
+
+// ========== OSC SYSTEM COMMAND HANDLER ==========
+void handleSystemOsc(const char* address, bool value) {
+  if (strcmp(address, "/ap") == 0 || strcmp(address, "/ap/enable") == 0) {
+    if (value) {
+      // Allumer l'AP
+      gApForcedOff = false;
+      if (!NETMGR.isWiFiAPActive()) {
+        NETMGR.startWiFiAP(&gCfg);
+        gApLastClientSeen = millis();  // reset timer
+        LOG_INFO("OSC", "📡 AP enabled via OSC");
+      }
+    } else {
+      // Éteindre l'AP
+      gApForcedOff = true;
+      if (NETMGR.isWiFiAPActive()) {
+        NETMGR.stopWiFiAP();
+        LOG_INFO("OSC", "📡 AP disabled via OSC");
+      }
+    }
+  }
 }
 
 // ========== WEB SERVER SETUP ==========
@@ -474,10 +502,13 @@ void setup() {
   // 🎯 STEP 8: Initialiser le routeur OSC (écoute UDP)
   LOG_INFO("OSC", "Starting OSC router on UDP port %d...", gCfg.oscListenPort);
   gOsc.begin(gCfg.oscListenPort, &gCfg, handleRelayCommand);
+  gOsc.setSystemCallback(handleSystemOsc);
   LOG_INFO("OSC", "OSC router ready to receive messages");
   WATCHDOG.feed();
 
   LedStatus::ok();  // 🟢 Vert = système prêt
+  gApLastClientSeen = millis();  // Démarrer le timer 5min AP
+  LOG_INFO("SYS", "📡 AP will auto-shutdown after 5min without clients");
   LOG_INFO("SYS", "✅ System initialization complete!");
   Serial.println("[MAIN] ✅ Waiting for HTTP connections on port 80...\n");
   delay(500);  // Donne le temps à la LED de s'afficher
@@ -509,7 +540,22 @@ void loop() {
   // 🌐 WEB SERVER HANDLING (serveur synchrone - nécessite handleClient())
   gWeb.handleClient();
 
-  // 📊 STATUS UPDATE (toutes les 5 secondes)
+  // � AP AUTO-MANAGEMENT (vérifier toutes les 5 secondes)
+  if (!gApForcedOff && now - gLastStatusUpdate >= 5000) {
+    int apClients = WiFi.softAPgetStationNum();
+    if (apClients > 0) {
+      // Client connecté → reset du timer
+      gApLastClientSeen = now;
+      // Rallumer l'AP si elle était éteinte (ne devrait pas arriver si client connecté)
+    } else if (NETMGR.isWiFiAPActive() && (now - gApLastClientSeen >= AP_TIMEOUT_MS)) {
+      // Pas de client depuis 5 min → éteindre l'AP
+      LOG_WARN("AP", "📡 No clients for 5 min, shutting down AP");
+      NETMGR.stopWiFiAP();
+      gWiFiApActive = false;
+    }
+  }
+
+  // �📊 STATUS UPDATE (toutes les 5 secondes)
   // Afficher l'état du système pour diagnostic
   if (now - gLastStatusUpdate >= 5000) {
     try {
