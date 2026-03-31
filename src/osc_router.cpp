@@ -1,5 +1,6 @@
 #include "osc_router.h"
 #include "logger.h"
+#include "led_status.h"
 
 bool OscRelayRouter::begin(uint16_t listenPort, const AppCfg* cfg, RelayCallback cb) {
   _port = listenPort;
@@ -174,6 +175,8 @@ void OscRelayRouter::loop() {
 
     int bytesRead = _udp.read(_rxBuffer, packetSize);
     if (bytesRead <= 0) continue;
+
+    LedStatus::activity(); // Flash bleu
 
     // Parse OSC message
     parseOscMessage(_rxBuffer, bytesRead);

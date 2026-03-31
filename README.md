@@ -20,7 +20,7 @@ Firmware pour la carte **Waveshare ESP32-S3-ETH-8DI-8RO** permettant de piloter 
 - **Modes de relais** : Latch (valeur directe ON/OFF) ou Toggle (basculement)
 - **Inversion logique** configurable par relais
 - **Mise en veille AP** : timeout configurable (défaut 5 min, 0 = toujours actif)
-- **LED RGB** de statut (WS2812) : bleu au boot, vert = OK, rouge = erreur
+- **LED RGB** de statut (WS2812) : bleu au boot, flash bleu sur réception OSC, vert = OK, rouge = erreur
 - **Watchdog** matériel (10s) pour redémarrage automatique en cas de crash
 - **Protection mutex** contre les accès concurrents Web/OSC aux relais
 - **Portail captif** : redirection automatique vers l'interface Web à la connexion WiFi

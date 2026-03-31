@@ -4,6 +4,8 @@
 namespace {
   Adafruit_NeoPixel strip(1, 38, NEO_RGB + NEO_KHZ800);
   uint8_t ledPin = 38;
+  volatile unsigned long activityTime = 0;
+  const unsigned long ACTIVITY_DURATION_MS = 50;
 }
 
 namespace LedStatus {
@@ -40,4 +42,16 @@ namespace LedStatus {
   void ok() { set(State::Ok); }
   void error() { set(State::Error); }
   void booting() { set(State::Booting); }
+
+  void activity() {
+    activityTime = millis();
+    setRGB(0, 0, 255); // Bleu
+  }
+
+  void update() {
+    if (activityTime > 0 && (millis() - activityTime >= ACTIVITY_DURATION_MS)) {
+      activityTime = 0;
+      ok(); // Retour au vert
+    }
+  }
 }

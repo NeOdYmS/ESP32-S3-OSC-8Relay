@@ -11,4 +11,6 @@ namespace LedStatus {
   void ok();
   void error();
   void booting();
+  void activity();  // Flash bleu bref sur réception OSC
+  void update();    // Appeler dans loop() pour retour auto au vert
 }

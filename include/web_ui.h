@@ -217,6 +217,10 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
       <div class="card">
         <h2>📝 Changelog</h2>
         <pre style="background: #0d1117; padding: 12px; border-radius: 6px; font-size: 12px; overflow: auto; max-height: 300px;">
+v1.2.2 - Mars 2026
+- LED bleue sur réception OSC : flash bleu 50ms à chaque message OSC reçu
+- Retour automatique au vert après le flash
+
 v1.2.1 - Mars 2026
 - Commande OSC /reboot : redémarrage à distance via OSC
 - Fix LED RGB : correction ordre couleurs (NEO_GRB → NEO_RGB) pour carte Waveshare

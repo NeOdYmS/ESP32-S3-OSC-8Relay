@@ -640,6 +640,9 @@ void loop() {
   // Pas de throttle : chaque passage dans loop() vérifie les paquets UDP
   gOsc.loop();
 
+  // 💡 LED activity update (retour au vert après flash bleu OSC)
+  LedStatus::update();
+
   // 🔄 WATCHDOG FEED (toutes les 100ms)
   if (now - gLastWatchdogFeed >= 100) {
     WATCHDOG.feed();
