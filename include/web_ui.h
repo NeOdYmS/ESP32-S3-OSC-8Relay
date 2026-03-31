@@ -52,11 +52,8 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
 </head>
 <body>
   <header>
-    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-      <h1 style="margin:0;">⚡ RelayOSC</h1>
-      <div id="oscTicker" style="flex:1; min-width:200px; font-family:monospace; font-size:11px; color:#58a6ff; background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:6px 10px; max-height:60px; overflow-y:auto; white-space:pre; line-height:1.3;">En attente OSC...</div>
-    </div>
-    <div id="statusLog" style="font-family:monospace; font-size:11px; color:#3fb950; margin-top:8px; background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:8px 12px; max-height:150px; overflow-y:auto; white-space:pre; line-height:1.4;">Connexion...</div>
+    <h1>⚡ RelayOSC</h1>
+    <div id="unifiedLog" style="font-family:monospace; font-size:11px; margin-top:8px; background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:8px 12px; max-height:180px; overflow-y:auto; line-height:1.5;"><span style="color:#8b949e;">Connexion...</span></div>
   </header>
 
   <main>
@@ -509,11 +506,21 @@ v1.0.0 - Janvier 2025
       }
     });
 
-    const MAX_LOG_LINES = 50;
+    const MAX_LOG_LINES = 60;
+    var logLines = [];  // {html, ts}
 
-    // Verbose status log in header (scrolling multi-line)
+    function appendLog(html) {
+      var el = document.getElementById('unifiedLog');
+      logLines.push(html);
+      if (logLines.length > MAX_LOG_LINES) logLines = logLines.slice(-MAX_LOG_LINES);
+      el.innerHTML = logLines.join('<br>');
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function esc(s) { var d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
+
+    // Verbose status log (green)
     async function updateStatusLog() {
-      const el = document.getElementById('statusLog');
       try {
         const resp = await fetch(`${API_BASE}/system/status`);
         const s = await resp.json();
@@ -521,7 +528,9 @@ v1.0.0 - Janvier 2025
         const heap = (s.freeHeap/1024).toFixed(0);
         const heapMin = (s.minFreeHeap/1024).toFixed(0);
         const now = new Date().toLocaleTimeString('fr-FR');
-        const line = `[${now}] uptime=${s.uptime} ETH=${s.ethConnected?'✓':'✗'} IP=${s.ethIp} | AP=${s.wifiApActive?'UP':'DOWN'} Clients=${s.apClients} | OSC:${s.oscPort} | RAM=${heap}K (min:${heapMin}K) | T=${s.cpuTemp.toFixed(1)}°C | ${relayStr}`;
+        const color = s.ethConnected ? '#3fb950' : '#f85149';
+        const txt = `[${now}] uptime=${s.uptime} ETH=${s.ethConnected?'✓':'✗'} IP=${s.ethIp} | AP=${s.wifiApActive?'UP':'DOWN'} Clients=${s.apClients} | OSC:${s.oscPort} | RAM=${heap}K (min:${heapMin}K) | T=${s.cpuTemp.toFixed(1)}°C | ${relayStr}`;
+        appendLog('<span style="color:' + color + '">' + esc(txt) + '</span>');
         // Update system info tab fields
         document.getElementById('sysUptime').textContent = s.uptime;
         document.getElementById('sysRam').textContent = heap + ' KB';
@@ -537,63 +546,45 @@ v1.0.0 - Janvier 2025
         const activeCount = s.relays.filter(v => v).length;
         document.getElementById('sysRelays').textContent = activeCount + ' / 8';
         document.getElementById('sysCpuTemp').textContent = s.cpuTemp.toFixed(1) + ' °C';
-        // Append new line, keep max lines
-        let lines = el.textContent === 'Connexion...' ? [] : el.textContent.split('\n');
-        lines.push(line);
-        if (lines.length > MAX_LOG_LINES) lines = lines.slice(-MAX_LOG_LINES);
-        el.textContent = lines.join('\n');
-        el.style.color = s.ethConnected ? '#3fb950' : '#f85149';
-        el.scrollTop = el.scrollHeight;
       } catch (e) {
-        let lines = el.textContent === 'Connexion...' ? [] : el.textContent.split('\n');
         const now = new Date().toLocaleTimeString('fr-FR');
-        lines.push(`[${now}] ⚠ Connexion perdue...`);
-        if (lines.length > MAX_LOG_LINES) lines = lines.slice(-MAX_LOG_LINES);
-        el.textContent = lines.join('\n');
-        el.style.color = '#f85149';
-        el.scrollTop = el.scrollHeight;
+        appendLog('<span style="color:#f85149">' + esc('[' + now + '] ⚠ Connexion perdue...') + '</span>');
       }
     }
 
-    // OSC message ticker in header
+    // OSC messages (blue/cyan)
     var lastOscTs = 0;
-    async function updateOscTicker() {
+    async function updateOscLog() {
       try {
         const resp = await fetch(`${API_BASE}/osc/log`);
         const data = await resp.json();
-        const el = document.getElementById('oscTicker');
         const msgs = data.messages;
         if (!msgs || msgs.length === 0) return;
-        // Only show new messages (ts > lastOscTs)
         var newMsgs = msgs.filter(m => m.ts > lastOscTs);
         if (newMsgs.length === 0) return;
         lastOscTs = msgs[msgs.length - 1].ts;
-        var lines = el.textContent === 'En attente OSC...' ? [] : el.textContent.split('\n');
         newMsgs.forEach(m => {
           var sec = Math.floor(m.ts / 1000);
           var h = Math.floor(sec / 3600) % 24;
           var mn = Math.floor(sec / 60) % 60;
           var s = sec % 60;
           var t = String(h).padStart(2,'0') + ':' + String(mn).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-          lines.push('[' + t + '] ' + m.addr + ' (' + m.type + ') = ' + m.val);
+          var txt = '[' + t + '] 📨 ' + m.addr + ' (' + m.type + ') = ' + m.val;
+          appendLog('<span style="color:#58a6ff">' + esc(txt) + '</span>');
         });
-        if (lines.length > 30) lines = lines.slice(-30);
-        el.textContent = lines.join('\n');
-        el.style.color = '#58a6ff';
-        el.scrollTop = el.scrollHeight;
       } catch(e) {}
     }
 
     // Initial load
     loadConfig();
     updateStatusLog();
-    updateOscTicker();
+    updateOscLog();
     updateWifiQR();
     document.getElementById('apSsid').addEventListener('input', updateWifiQR);
     document.getElementById('apPass').addEventListener('input', updateWifiQR);
     setInterval(updateRelayStatus, 2000);
     setInterval(updateStatusLog, 3000);
-    setInterval(updateOscTicker, 1000);
+    setInterval(updateOscLog, 1000);
   </script>
 </body>
 </html>)HTML";
