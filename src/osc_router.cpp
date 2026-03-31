@@ -87,6 +87,20 @@ bool OscRelayRouter::parseOscMessage(const uint8_t* data, size_t len) {
 
   if (tagsStart >= (int)len || data[tagsStart] != ',') return false;
 
+  // Check ALL ON/OFF address
+  if (strcmp(address, "/relay/all") == 0) {
+    bool newState = false;
+    if (extractBoolValue(data, len, tagsStart, newState)) {
+      LOG_OSC("OSC", "Matched /relay/all -> state=%d (ALL relays)", newState);
+      if (_cb) {
+        for (int i = 0; i < 8; i++) {
+          _cb(i, newState);
+        }
+      }
+      return true;
+    }
+  }
+
   // Check each relay's address
   for (int i = 0; i < 8; i++) {
     if (strcmp(address, _cfg->relays[i].oscAddress) == 0) {

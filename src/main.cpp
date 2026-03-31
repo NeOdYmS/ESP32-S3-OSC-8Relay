@@ -220,6 +220,24 @@ void setupWebServer() {
     });
   }
 
+  // ⚡ API: POST /api/relays/all - ALL ON / ALL OFF
+  gWeb.on("/api/relays/all", HTTP_POST, []() {
+    LOG_DEBUG("WEB", "⚡ POST /api/relays/all from %s", gWeb.client().remoteIP().toString().c_str());
+    String body = gWeb.arg("plain");
+    StaticJsonDocument<128> doc;
+    deserializeJson(doc, body);
+
+    if (doc.containsKey("state")) {
+      bool state = doc["state"].as<bool>();
+      for (int i = 0; i < 8; i++) {
+        handleRelayCommand(i, state);
+      }
+      gWeb.send(200, "text/plain", "OK");
+    } else {
+      gWeb.send(400, "text/plain", "Invalid request");
+    }
+  });
+
   // 🎛️ API: POST /api/config/relays - Sauvegarder config des relais
   gWeb.on("/api/config/relays", HTTP_POST, []() {
     String body = gWeb.arg("plain");
@@ -304,7 +322,30 @@ void setupWebServer() {
     LOG_INFO("WEB", "WiFi AP config updated");
   });
 
-  // 🔄 API: POST /api/system/reboot - Redémarrer l'ESP32
+  // � API: GET /api/system/status - État système verbose
+  gWeb.on("/api/system/status", HTTP_GET, []() {
+    StaticJsonDocument<512> doc;
+    unsigned long sec = millis() / 1000;
+    char uptime[32];
+    snprintf(uptime, sizeof(uptime), "%lud %02lu:%02lu:%02lu", sec/86400, (sec%86400)/3600, (sec%3600)/60, sec%60);
+    doc["uptime"] = uptime;
+    doc["ethConnected"] = NETMGR.isEthernetConnected();
+    doc["ethIp"] = NETMGR.getEthernetIP().toString();
+    doc["wifiApActive"] = NETMGR.isWiFiAPActive();
+    doc["wifiApIp"] = WiFi.softAPIP().toString();
+    doc["freeHeap"] = ESP.getFreeHeap();
+    doc["minFreeHeap"] = ESP.getMinFreeHeap();
+    doc["oscPort"] = gCfg.oscListenPort;
+    doc["apSsid"] = gCfg.apSsid;
+    JsonArray relays = doc.createNestedArray("relays");
+    for (int i = 0; i < 8; i++) relays.add(gRelayLogical[i]);
+    doc["apClients"] = WiFi.softAPgetStationNum();
+    String response;
+    serializeJson(doc, response);
+    gWeb.send(200, "application/json", response);
+  });
+
+  // �🔄 API: POST /api/system/reboot - Redémarrer l'ESP32
   gWeb.on("/api/system/reboot", HTTP_POST, []() {
     gWeb.send(200, "text/plain", "Rebooting...");
     delay(1000);
