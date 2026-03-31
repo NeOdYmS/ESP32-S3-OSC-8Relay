@@ -54,7 +54,8 @@ const fakeSystemStatus = {
   apSsid: "ESP32-S3-OSC-8RELAY",
   relays: [true, false, true, false, true, false, false, true],
   apClients: 1,
-  apTimeoutMin: 5
+  apTimeoutMin: 5,
+  cpuTemp: 42.3
 };
 
 const origFetch = window.fetch;

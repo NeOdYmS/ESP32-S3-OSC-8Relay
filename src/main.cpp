@@ -368,6 +368,7 @@ void setupWebServer() {
     doc["oscPort"] = gCfg.oscListenPort;
     doc["apSsid"] = gCfg.apSsid;
     doc["apTimeoutMin"] = gCfg.apTimeoutMin;
+    doc["cpuTemp"] = temperatureRead();
     JsonArray relays = doc.createNestedArray("relays");
     for (int i = 0; i < 8; i++) relays.add(gRelayLogical[i]);
     doc["apClients"] = WiFi.softAPgetStationNum();

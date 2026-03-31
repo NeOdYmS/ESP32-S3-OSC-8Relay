@@ -176,6 +176,11 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
           <button id="saveAp">💾 Sauvegarder</button>
           <span id="saveApMsg"></span>
         </div>
+        <div style="text-align:center; margin-top:20px; padding:16px; background:#161b22; border-radius:8px; border:1px solid #30363d;">
+          <div style="font-size:14px; font-weight:600; margin-bottom:12px; color:#e6edf3;">📱 QR Code WiFi</div>
+          <canvas id="qrCanvas" style="image-rendering:pixelated; image-rendering:-webkit-optimize-contrast;"></canvas>
+          <div style="font-size:11px; color:#8b949e; margin-top:8px;">Scannez avec votre iPhone ou téléphone pour vous connecter</div>
+        </div>
       </div>
     </div>
 
@@ -197,6 +202,7 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
           <div><strong>Clients AP:</strong> <span id="sysApClients">—</span></div>
           <div><strong>Mise en veille AP:</strong> <span id="sysApTimeout">—</span></div>
           <div><strong>Relais actifs:</strong> <span id="sysRelays">—</span></div>
+          <div><strong>Température CPU:</strong> <span id="sysCpuTemp">—</span></div>
         </div>
       </div>
 
@@ -224,6 +230,156 @@ v1.0.0 - Janvier 2025
 
   <script>
     const API_BASE = '/api';
+
+    // Minimal QR Code generator (byte mode, ECC L, v1-6)
+    function makeQR(text, cvs, cs) {
+      cs = cs || 5;
+      var E = [], L = [];
+      for (var i = 0, x = 1; i < 255; i++) { E[i] = x; L[x] = i; x <<= 1; if (x & 256) x ^= 285; }
+      for (var i = 255; i < 512; i++) E[i] = E[i - 255];
+      function gm(a, b) { return a && b ? E[L[a] + L[b]] : 0; }
+      function rsPoly(n) {
+        var g = [1];
+        for (var i = 0; i < n; i++) {
+          var p = []; for (var k = 0; k <= g.length; k++) p[k] = 0;
+          for (var j = 0; j < g.length; j++) { p[j] ^= g[j]; p[j+1] ^= gm(g[j], E[i]); }
+          g = p;
+        }
+        return g;
+      }
+      function rsEnc(d, ne) {
+        var g = rsPoly(ne), r = []; for (var k = 0; k < ne; k++) r[k] = 0;
+        for (var i = 0; i < d.length; i++) {
+          var f = d[i] ^ r[0]; for (var j = 0; j < ne-1; j++) r[j] = r[j+1]; r[ne-1] = 0;
+          for (var j = 0; j < ne; j++) r[j] ^= gm(g[j+1], f);
+        }
+        return r;
+      }
+      var VD = [,[19,7,1],[34,10,1],[55,15,1],[80,20,1],[108,26,1],[136,18,2]];
+      var AL = [,[],[6,18],[6,22],[6,26],[6,30],[6,34]];
+      var dl = text.length, v;
+      for (v = 1; v <= 6; v++) if (VD[v][0] >= dl + 2) break;
+      if (v > 6) return;
+      var sz = 4*v+17, dc = VD[v][0], ne = VD[v][1], nb = VD[v][2];
+      var bits = [];
+      function pb(val, len) { for (var i = len-1; i >= 0; i--) bits.push((val>>i)&1); }
+      pb(4, 4); pb(dl, 8);
+      for (var i = 0; i < dl; i++) pb(text.charCodeAt(i) & 0xFF, 8);
+      for (var i = 0; i < 4 && bits.length < dc*8; i++) bits.push(0);
+      while (bits.length % 8) bits.push(0);
+      var pds = [0xEC, 0x11], pi = 0;
+      while (bits.length < dc*8) pb(pds[pi++ % 2], 8);
+      var data = [];
+      for (var i = 0; i < bits.length; i += 8) { var b = 0; for (var j = 0; j < 8; j++) b = (b<<1)|bits[i+j]; data.push(b); }
+      var bsz = Math.floor(dc/nb), extra = dc % nb;
+      var blks = [], eccb = [], pos = 0;
+      for (var b = 0; b < nb; b++) {
+        var s = bsz + (b >= nb - extra ? 1 : 0);
+        var bd = data.slice(pos, pos + s); pos += s;
+        blks.push(bd); eccb.push(rsEnc(bd, ne));
+      }
+      var cw = [];
+      var mbl = blks.reduce(function(m, b) { return Math.max(m, b.length); }, 0);
+      for (var i = 0; i < mbl; i++) for (var b = 0; b < nb; b++) if (i < blks[b].length) cw.push(blks[b][i]);
+      for (var i = 0; i < ne; i++) for (var b = 0; b < nb; b++) cw.push(eccb[b][i]);
+      var M = [], F = [];
+      for (var r = 0; r < sz; r++) { M[r] = []; F[r] = []; for (var c = 0; c < sz; c++) { M[r][c] = 0; F[r][c] = false; } }
+      function finder(or, oc) {
+        for (var r = -1; r <= 7; r++) for (var c = -1; c <= 7; c++) {
+          var rr = or+r, cc = oc+c;
+          if (rr < 0 || rr >= sz || cc < 0 || cc >= sz) continue;
+          F[rr][cc] = true;
+          M[rr][cc] = (r >= 0 && r <= 6 && c >= 0 && c <= 6 && (r==0||r==6||c==0||c==6||(r>=2&&r<=4&&c>=2&&c<=4))) ? 1 : 0;
+        }
+      }
+      finder(0, 0); finder(0, sz-7); finder(sz-7, 0);
+      if (v >= 2) {
+        var ap = AL[v];
+        for (var i = 0; i < ap.length; i++) for (var j = 0; j < ap.length; j++) {
+          if (F[ap[i]][ap[j]]) continue;
+          for (var dr = -2; dr <= 2; dr++) for (var dc2 = -2; dc2 <= 2; dc2++) {
+            F[ap[i]+dr][ap[j]+dc2] = true;
+            M[ap[i]+dr][ap[j]+dc2] = (Math.abs(dr)==2||Math.abs(dc2)==2||(!dr&&!dc2)) ? 1 : 0;
+          }
+        }
+      }
+      for (var i = 8; i < sz-8; i++) {
+        if (!F[6][i]) { F[6][i] = true; M[6][i] = i%2==0?1:0; }
+        if (!F[i][6]) { F[i][6] = true; M[i][6] = i%2==0?1:0; }
+      }
+      F[sz-8][8] = true; M[sz-8][8] = 1;
+      for (var i = 0; i <= 8; i++) { F[8][i] = true; F[i][8] = true; }
+      for (var i = 0; i < 8; i++) { F[8][sz-1-i] = true; F[sz-1-i][8] = true; }
+      var bi = 0, total = cw.length * 8, up = true;
+      for (var col = sz-1; col >= 1; col -= 2) {
+        if (col == 6) col = 5;
+        for (var cnt = 0; cnt < sz; cnt++) {
+          var row = up ? sz-1-cnt : cnt;
+          for (var j = 0; j < 2; j++) {
+            var c2 = col - j;
+            if (c2 < 0 || F[row][c2]) continue;
+            if (bi < total) { M[row][c2] = (cw[bi>>3]>>(7-(bi&7)))&1; bi++; }
+          }
+        }
+        up = !up;
+      }
+      function mf(mk, r, c) {
+        switch(mk) {
+          case 0: return (r+c)%2==0;
+          case 1: return r%2==0;
+          case 2: return c%3==0;
+          case 3: return (r+c)%3==0;
+          case 4: return (~~(r/2)+~~(c/3))%2==0;
+          case 5: return r*c%2+r*c%3==0;
+          case 6: return (r*c%2+r*c%3)%2==0;
+          case 7: return ((r+c)%2+r*c%3)%2==0;
+        }
+      }
+      function fmtInfo(mk) {
+        var d = (1<<3)|mk, b = d<<10;
+        for (var i = 4; i >= 0; i--) if (b&(1<<(i+10))) b ^= 0x537<<i;
+        return ((d<<10)|b)^0x5412;
+      }
+      function writeFmt(m, mk) {
+        var fi = fmtInfo(mk);
+        var p1=[[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+        var p2=[[sz-1,8],[sz-2,8],[sz-3,8],[sz-4,8],[sz-5,8],[sz-6,8],[sz-7,8],[8,sz-8],[8,sz-7],[8,sz-6],[8,sz-5],[8,sz-4],[8,sz-3],[8,sz-2],[8,sz-1]];
+        for (var i = 0; i < 15; i++) { var bit = (fi>>i)&1; m[p1[i][0]][p1[i][1]] = bit; m[p2[i][0]][p2[i][1]] = bit; }
+      }
+      function penalty(m) {
+        var n = m.length, p = 0;
+        for (var r = 0; r < n; r++) { var run = 1; for (var c = 1; c < n; c++) { if (m[r][c]==m[r][c-1]) { run++; if (run==5) p+=3; else if (run>5) p++; } else run=1; } }
+        for (var c = 0; c < n; c++) { var run = 1; for (var r = 1; r < n; r++) { if (m[r][c]==m[r-1][c]) { run++; if (run==5) p+=3; else if (run>5) p++; } else run=1; } }
+        for (var r = 0; r < n-1; r++) for (var c = 0; c < n-1; c++) { if (m[r][c]==m[r][c+1]&&m[r][c]==m[r+1][c]&&m[r][c]==m[r+1][c+1]) p+=3; }
+        var dk = 0; for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) dk += m[r][c];
+        var pct = dk*100/(n*n), pv = Math.floor(pct/5)*5;
+        p += Math.min(Math.abs(pv-50)/5, Math.abs(pv+5-50)/5) * 10;
+        return p;
+      }
+      var bestMk = 0, bestP = 1e9;
+      for (var mk = 0; mk < 8; mk++) {
+        var mm = []; for (var r = 0; r < sz; r++) { mm[r] = []; for (var c = 0; c < sz; c++) { mm[r][c] = M[r][c]; if (!F[r][c] && mf(mk, r, c)) mm[r][c] ^= 1; } }
+        writeFmt(mm, mk);
+        var p = penalty(mm); if (p < bestP) { bestP = p; bestMk = mk; }
+      }
+      for (var r = 0; r < sz; r++) for (var c = 0; c < sz; c++) if (!F[r][c] && mf(bestMk, r, c)) M[r][c] ^= 1;
+      writeFmt(M, bestMk);
+      var q = 4, t = sz + q*2;
+      cvs.width = cvs.height = t * cs;
+      var ctx = cvs.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cvs.width, cvs.height);
+      ctx.fillStyle = '#000';
+      for (var r = 0; r < sz; r++) for (var c = 0; c < sz; c++) if (M[r][c]) ctx.fillRect((c+q)*cs, (r+q)*cs, cs, cs);
+    }
+
+    function updateWifiQR() {
+      var ssid = document.getElementById('apSsid').value;
+      var pass = document.getElementById('apPass').value;
+      var cvs = document.getElementById('qrCanvas');
+      if (!ssid) { cvs.width = cvs.height = 0; return; }
+      var esc = function(s) { return s.replace(/[\\;,":]/g, '\\$&'); };
+      makeQR('WIFI:T:WPA;S:' + esc(ssid) + ';P:' + esc(pass) + ';;', cvs, 6);
+    }
     
     // Tab switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -261,6 +417,7 @@ v1.0.0 - Janvier 2025
         document.getElementById('apMask').value = cfg.apMask;
         document.getElementById('apGw').value = cfg.apGw;
         document.getElementById('apTimeout').value = cfg.apTimeoutMin;
+        updateWifiQR();
 
         // Relays
         const relayCtrlGrid = document.getElementById('relayControlGrid');
@@ -483,11 +640,11 @@ v1.0.0 - Janvier 2025
       try {
         const resp = await fetch(`${API_BASE}/system/status`);
         const s = await resp.json();
-        const relayStr = s.relays.map((v,i) => `R${i+1}:${v?'\x1b[32mON\x1b[0m':'OFF'}`).join(' ');
+        const relayStr = s.relays.map((v,i) => `R${i+1}:${v?'ON':'OFF'}`).join(' ');
         const heap = (s.freeHeap/1024).toFixed(0);
         const heapMin = (s.minFreeHeap/1024).toFixed(0);
         const now = new Date().toLocaleTimeString('fr-FR');
-        const line = `[${now}] uptime=${s.uptime} ETH=${s.ethConnected?'✓':'✗'} IP=${s.ethIp} | AP=${s.wifiApActive?'UP':'DOWN'} SSID=${s.apSsid} Clients=${s.apClients} | OSC:${s.oscPort} | RAM=${heap}K (min:${heapMin}K) | ${relayStr}`;
+        const line = `[${now}] uptime=${s.uptime} ETH=${s.ethConnected?'✓':'✗'} IP=${s.ethIp} | AP=${s.wifiApActive?'UP':'DOWN'} Clients=${s.apClients} | OSC:${s.oscPort} | RAM=${heap}K (min:${heapMin}K) | T=${s.cpuTemp.toFixed(1)}°C | ${relayStr}`;
         // Update system info tab fields
         document.getElementById('sysUptime').textContent = s.uptime;
         document.getElementById('sysRam').textContent = heap + ' KB';
@@ -502,6 +659,7 @@ v1.0.0 - Janvier 2025
         document.getElementById('sysApTimeout').textContent = s.apTimeoutMin === 0 ? 'Désactivée (toujours actif)' : s.apTimeoutMin + ' min';
         const activeCount = s.relays.filter(v => v).length;
         document.getElementById('sysRelays').textContent = activeCount + ' / 8';
+        document.getElementById('sysCpuTemp').textContent = s.cpuTemp.toFixed(1) + ' °C';
         // Append new line, keep max lines
         let lines = el.textContent === 'Connexion...' ? [] : el.textContent.split('\n');
         lines.push(line);
@@ -523,6 +681,9 @@ v1.0.0 - Janvier 2025
     // Initial load
     loadConfig();
     updateStatusLog();
+    updateWifiQR();
+    document.getElementById('apSsid').addEventListener('input', updateWifiQR);
+    document.getElementById('apPass').addEventListener('input', updateWifiQR);
     setInterval(updateRelayStatus, 2000);
     setInterval(updateStatusLog, 3000);
   </script>
