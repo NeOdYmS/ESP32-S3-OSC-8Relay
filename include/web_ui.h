@@ -71,6 +71,10 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
           Écoute OSC sur port UDP: <strong id="oscPortView">8000</strong>
         </div>
         <div class="grid-4" id="relayControlGrid"></div>
+        <div class="button-group" style="margin-top: 12px; justify-content: center;">
+          <button style="background:#238636; min-width:140px;" onclick="setAllRelays(true)">✅ ALL ON</button>
+          <button style="background:#da3633; min-width:140px;" onclick="setAllRelays(false)">⛔ ALL OFF</button>
+        </div>
       </div>
 
       <div class="card">
@@ -323,6 +327,20 @@ v1.0.0 - Janvier 2025
         }
       } catch (e) {
         console.error('Erreur statut relais:', e);
+      }
+    }
+
+    // Set all relays ON or OFF
+    async function setAllRelays(state) {
+      try {
+        await fetch(`${API_BASE}/relays/all`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: state })
+        });
+        updateRelayStatus();
+      } catch (e) {
+        console.error('Erreur ALL relais:', e);
       }
     }
 

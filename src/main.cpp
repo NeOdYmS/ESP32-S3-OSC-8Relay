@@ -220,6 +220,24 @@ void setupWebServer() {
     });
   }
 
+  // ⚡ API: POST /api/relays/all - ALL ON / ALL OFF
+  gWeb.on("/api/relays/all", HTTP_POST, []() {
+    LOG_DEBUG("WEB", "⚡ POST /api/relays/all from %s", gWeb.client().remoteIP().toString().c_str());
+    String body = gWeb.arg("plain");
+    StaticJsonDocument<128> doc;
+    deserializeJson(doc, body);
+
+    if (doc.containsKey("state")) {
+      bool state = doc["state"].as<bool>();
+      for (int i = 0; i < 8; i++) {
+        handleRelayCommand(i, state);
+      }
+      gWeb.send(200, "text/plain", "OK");
+    } else {
+      gWeb.send(400, "text/plain", "Invalid request");
+    }
+  });
+
   // 🎛️ API: POST /api/config/relays - Sauvegarder config des relais
   gWeb.on("/api/config/relays", HTTP_POST, []() {
     String body = gWeb.arg("plain");
