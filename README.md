@@ -11,7 +11,10 @@ Firmware pour la carte **Waveshare ESP32-S3-ETH-8DI-8RO** permettant de piloter 
 - **8 relais** contrôlables via OSC (UDP) sur Ethernet W5500
 - **ALL ON / ALL OFF** : boutons web + commande OSC `/relay/all`
 - **Interface Web** complète accessible via Wi-Fi AP (point d'accès)
-- **Log verbose temps réel** dans le header web (uptime, ETH, RAM, relais...)
+- **Log unifié temps réel** dans le header web : messages système (vert) + OSC entrants (bleu) fusionnés
+- **Affichage OSC entrants** : adresse, type tag et valeur en temps réel
+- **QR code WiFi** dans l'onglet Réseau pour connexion rapide
+- **Température CPU** affichée dans l'onglet Système
 - **Deux réseaux séparés** : Ethernet pour l'OSC, Wi-Fi pour la configuration
 - **Persistance** : configuration et état des relais sauvegardés en flash (NVS)
 - **Modes de relais** : Latch (valeur directe ON/OFF) ou Toggle (basculement)
@@ -129,7 +132,7 @@ Contrôle en temps réel des 8 relais et configuration des adresses OSC par rela
 
 - **Boutons ON/OFF** : contrôle direct de chaque relais
 - **ALL ON / ALL OFF** : active ou désactive les 8 relais d'un coup
-- **Log verbose** : bandeau défilant en haut affichant uptime, état réseau, RAM, relais
+- **Log unifié** : bandeau temps réel affichant messages système (vert) et OSC entrants (bleu)
 - **Adresse OSC** : chemin OSC personnalisable (ex: `/relay/1`, `/scene/light/3`)
 - **Inverser logique** : inverse l'état physique du relais
 - **Mode** : Latch (valeur directe) ou Toggle (basculement à chaque impulsion)
@@ -142,6 +145,7 @@ Configuration de l'Ethernet (W5500) et du point d'accès Wi-Fi.
 
 - **Ethernet** : IP statique ou DHCP, masque, passerelle, DNS, port OSC
 - **Wi-Fi AP** : SSID, mot de passe, IP du point d'accès, **délai de mise en veille** (0 = infini)
+- **QR code WiFi** : généré automatiquement pour connexion rapide au point d'accès
 
 ### Onglet Système
 
@@ -154,6 +158,7 @@ Informations système en temps réel, redémarrage et réinitialisation usine.
 - **Ethernet** : état de connexion et IP
 - **WiFi AP** : état, SSID, IP, nombre de clients, mise en veille
 - **Relais actifs** : nombre de relais allumés / 8
+- **Température CPU** : en temps réel
 
 ---
 
@@ -189,6 +194,7 @@ Informations système en temps réel, redémarrage et réinitialisation usine.
 |---|---|---|
 | `/ap` | `1` | Allumer le point d'accès Wi-Fi |
 | `/ap` | `0` | Éteindre le point d'accès Wi-Fi |
+| `/ap/enable` | *(aucune)* | Allumer le point d'accès Wi-Fi |
 
 > L'AP s'éteint automatiquement après le **délai de mise en veille configuré** (5 min par défaut, configurable via l'interface Web, 0 = toujours actif). La commande `/ap 1` le rallume à tout moment.
 
@@ -288,7 +294,9 @@ L'interface Web utilise une API REST accessible sur le Wi-Fi AP (`http://192.168
 | `POST` | `/api/config/ap` | Sauvegarder la config Wi-Fi AP |
 | `POST` | `/api/system/reboot` | Redémarrer l'ESP32 |
 | `POST` | `/api/system/factoryreset` | Réinitialisation usine |
-| `GET` | `/api/system/status` | État système (uptime, RAM, ETH, relais...) |
+| `GET` | `/api/system/status` | État système (uptime, RAM, ETH, CPU temp, relais...) |
+| `GET` | `/api/osc/log` | Derniers messages OSC reçus (ring buffer) |
+| `POST` | `/api/config/network/reload` | Recharger la config réseau sans reboot |
 
 ### Exemple avec `curl`
 
@@ -392,3 +400,4 @@ Ce projet est fourni tel quel, sans garantie. Usage libre pour projets personnel
 - **Ethernet_Generic** par Khoi Hoang
 - **ArduinoJson** par Benoît Blanchon
 - **Adafruit NeoPixel** par Adafruit Industries
+- **qrcode-generator** v1.4.4 par Kazuhiko Arase (MIT License)

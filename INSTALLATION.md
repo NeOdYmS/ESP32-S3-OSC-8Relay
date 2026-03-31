@@ -9,7 +9,7 @@
 
 ### Composants Externes
 - **W5500** : Module Ethernet SPI (CS=16, INT=12, SCK=15, MISO=14, MOSI=13)
-- **PCA9554** : Expandeur I/O sur I2C (adresse 0x20, SDA=8, SCL=9)
+- **PCA9554** : Expandeur I/O sur I2C (adresse 0x20, SDA=42, SCL=41)
 - 8 relais connectés aux sorties du PCA9554
 
 ### Ordinateur
@@ -95,18 +95,18 @@ pio device monitor --baud 115200
 ```
 [INFO] [LOGGER] Logger initialized
 [INFO] [WATCHDOG] Watchdog started (timeout: 10000 ms)
-[INFO] [I2C] I2C initialized on SDA=8, SCL=9
+[INFO] [I2C] I2C initialized on SDA=42, SCL=41
 [INFO] [CONFIG] Loading configuration from NVS
 [INFO] [PCA9554] I/O expander initialized at 0x20
 [INFO] [NET] Initializing Ethernet mode (WiFi STA with static IP)...
-[INFO] [NET] Ethernet static IP: 192.168.1.100
+[INFO] [NET] Ethernet static IP: 192.168.0.1
 [INFO] [WEB] Web server started on port 80
 [INFO] [OSC] OSC server listening on UDP port 8000
 [INFO] ✅ System Ready
 ```
 
 **Si erreur "PCA9554 not found"** :
-- Vérifier le câblage I2C (SDA=GPIO8, SCL=GPIO9)
+- Vérifier le câblage I2C (SDA=GPIO42, SCL=GPIO41)
 - Vérifier l'adresse I2C avec `i2cdetect` (0x20 attendu)
 
 ---
@@ -116,52 +116,52 @@ pio device monitor --baud 115200
 ### Valeurs par Défaut (NVS vide)
 ```json
 {
-  "hostname": "ESP32-OSC-Relay",
+  "hostname": "esp32-relay-osc",
   "eth": {
     "dhcp": false,
-    "ip": "192.168.1.100",
-    "gw": "192.168.1.1",
+    "ip": "192.168.0.1",
+    "gw": "192.168.0.254",
     "mask": "255.255.255.0",
-    "dns1": "8.8.8.8",
-    "dns2": "8.8.4.4"
+    "dns1": "1.1.1.1",
+    "dns2": "8.8.8.8"
   },
   "oscPort": 8000,
   "wifiApAllowed": true,
-  "apSsid": "ESP32-OSC-Relay",
-  "apPassword": "12345678",
+  "apSsid": "ESP32-S3-OSC-8RELAY",
+  "apPassword": "S3Relay!",
   "relays": [
-    {"oscAddress": "/relay/0", "invert": false, "mode": 0},
     {"oscAddress": "/relay/1", "invert": false, "mode": 0},
+    {"oscAddress": "/relay/2", "invert": false, "mode": 0},
     ...
   ]
 }
 ```
 
 ### Accès à l'Interface Web
-1. **Connecter l'ordinateur au même réseau** (192.168.1.x)
-2. **Ouvrir le navigateur** : `http://192.168.1.100`
-3. **Modifier la configuration** via l'API REST :
+1. **Connecter l'ordinateur au Wi-Fi AP** : SSID `ESP32-S3-OSC-8RELAY`, mot de passe `S3Relay!`
+2. **Ouvrir le navigateur** : `http://192.168.4.1`
+3. **Modifier la configuration** via l'interface Web ou l'API REST :
 
 #### GET Configuration
 ```bash
-curl http://192.168.1.100/api/config
+curl http://192.168.4.1/api/config
 ```
 
 #### POST Nouvelle IP Ethernet
 ```bash
-curl -X POST http://192.168.1.100/api/config/network \
+curl -X POST http://192.168.4.1/api/config/network \
   -H "Content-Type: application/json" \
   -d '{
     "dhcp": false,
-    "ip": "192.168.1.150",
-    "gw": "192.168.1.1",
+    "ip": "192.168.0.150",
+    "gw": "192.168.0.254",
     "mask": "255.255.255.0"
   }'
 ```
 
 #### POST Adresse OSC d'un Relais
 ```bash
-curl -X POST http://192.168.1.100/api/config/relays \
+curl -X POST http://192.168.4.1/api/config/relays \
   -H "Content-Type: application/json" \
   -d '{
     "relays": [
@@ -180,35 +180,35 @@ curl -X POST http://192.168.1.100/api/config/relays \
 # Installer liblo (si absent)
 brew install liblo
 
-# Activer relais 0
-oscsend 192.168.1.100 8000 /relay/0 i 1
+# Activer relais 1
+oscsend 192.168.0.1 8000 /relay/1 i 1
 
-# Désactiver relais 0
-oscsend 192.168.1.100 8000 /relay/0 i 0
+# Désactiver relais 1
+oscsend 192.168.0.1 8000 /relay/1 i 0
 
 # Toggle relais 3
-oscsend 192.168.1.100 8000 /relay/3 f 1.0
+oscsend 192.168.0.1 8000 /relay/3 f 1.0
 ```
 
 ### Avec Python + `python-osc`
 ```python
 from pythonosc import udp_client
 
-client = udp_client.SimpleUDPClient("192.168.1.100", 8000)
+client = udp_client.SimpleUDPClient("192.168.0.1", 8000)
 
-# Activer relais 0
-client.send_message("/relay/0", 1)
+# Activer relais 1
+client.send_message("/relay/1", 1)
 
-# Désactiver relais 0
-client.send_message("/relay/0", 0)
+# Désactiver relais 1
+client.send_message("/relay/1", 0)
 ```
 
 ### Logs OSC (Moniteur Série)
 ```
-[OSC] Received: /relay/0 i:1 → Relay 0 = ON
-[RELAY] Relay 0 set to ON (physical: ON)
-[OSC] Received: /relay/0 i:0 → Relay 0 = OFF
-[RELAY] Relay 0 set to OFF (physical: OFF)
+[OSC] Received: /relay/1 i:1 → Relay 1 = ON
+[RELAY] Relay 1 set to ON (physical: ON)
+[OSC] Received: /relay/1 i:0 → Relay 1 = OFF
+[RELAY] Relay 1 set to OFF (physical: OFF)
 ```
 
 ---
@@ -222,7 +222,7 @@ client.send_message("/relay/0", 0)
 
 ### Hot Reload Réseau
 ```bash
-curl -X POST http://192.168.1.100/api/config/network \
+curl -X POST http://192.168.4.1/api/config/network \
   -H "Content-Type: application/json" \
   -d '{"dhcp": true}'
 ```
@@ -237,9 +237,8 @@ Activer/désactiver dans [platformio.ini](platformio.ini):
 ```
 
 ### Modes Relais
-- **Mode 0** : Direct (OSC contrôle immédiat)
-- **Mode 1** : Toggle (chaque message inverse l'état)
-- **Mode 2** : Pulse (impulsion 500ms)
+- **Mode 0** : Latch (la valeur OSC définit directement l'état ON/OFF)
+- **Mode 1** : Toggle (chaque message non-zéro inverse l'état)
 
 ---
 
@@ -259,14 +258,14 @@ Activer/désactiver dans [platformio.ini](platformio.ini):
 
 ### Problème : PCA9554 non détecté
 **Solution** :
-1. Vérifier câblage I2C : SDA=GPIO8, SCL=GPIO9
+1. Vérifier câblage I2C : SDA=GPIO42, SCL=GPIO41
 2. Vérifier alimentation 3.3V du PCA9554
 3. Scanner I2C : ajouter code `Wire.beginTransmission(0x20);`
 
 ### Problème : Pas d'IP réseau
 **Solution** :
 1. Vérifier câble Ethernet
-2. Activer mode WiFi AP : `http://192.168.4.1` (SSID: ESP32-OSC-Relay)
+2. Activer mode WiFi AP : `http://192.168.4.1` (SSID: ESP32-S3-OSC-8RELAY, pass: S3Relay!)
 3. Vérifier config DHCP/statique
 
 ### Problème : Watchdog reset en boucle
@@ -279,8 +278,8 @@ Activer/désactiver dans [platformio.ini](platformio.ini):
 
 ## 📊 Statistiques Firmware
 
-- **RAM utilisée** : 48 KB / 320 KB (14.7%)
-- **Flash utilisée** : 1 016 KB / 6 554 KB (15.5%)
+- **RAM utilisée** : ~50 KB / 320 KB (15.3%)
+- **Flash utilisée** : ~1 039 KB / 6 554 KB (15.9%)
 - **Réserve disponible** : ~5.5 MB pour OTA/logs/features
 
 ---
@@ -296,7 +295,7 @@ pio run --target upload
 ### OTA via Réseau (Future)
 ```bash
 # À implémenter : ArduinoOTA
-pio run --target upload --upload-port 192.168.1.100
+pio run --target upload --upload-port 192.168.0.1
 ```
 
 ---
@@ -306,8 +305,8 @@ pio run --target upload --upload-port 192.168.1.100
 - [ ] Compilation réussie (`pio run`)
 - [ ] Upload réussi (`pio run --target upload`)
 - [ ] Logs série visibles (`pio device monitor`)
-- [ ] IP réseau accessible (ping `192.168.1.100`)
-- [ ] Interface web répond (`http://192.168.1.100`)
+- [ ] IP réseau accessible (ping `192.168.0.1`)
+- [ ] Interface web répond (`http://192.168.4.1`)
 - [ ] API REST fonctionnelle (`curl /api/config`)
 - [ ] Messages OSC reçus (logs `[OSC]`)
 - [ ] Relais commutent physiquement

@@ -216,7 +216,20 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
 
       <div class="card">
         <h2>📝 Changelog</h2>
-        <pre style="background: #0d1117; padding: 12px; border-radius: 6px; font-size: 12px; overflow: auto; max-height: 200px;">
+        <pre style="background: #0d1117; padding: 12px; border-radius: 6px; font-size: 12px; overflow: auto; max-height: 300px;">
+v1.1.0 - Juin 2025
+- Log unifié temps réel : messages système (vert) + OSC entrants (bleu) fusionnés dans le header
+- Affichage des messages OSC entrants avec adresse, type tag et valeur
+- QR code WiFi (qrcode-generator v1.4.4) dans l'onglet Réseau
+- Température CPU dans l'onglet Système
+- Timeout AP configurable (0 = toujours actif)
+- Panneau Système (uptime, RAM, ETH, relais actifs)
+- Boutons ALL ON / ALL OFF (web + OSC /relay/all)
+- Commande OSC /ap (ON/OFF du point d'accès)
+- Extinction auto du WiFi AP après timeout sans clients
+- Endpoint /api/system/status + /api/osc/log
+- Fix générateur QR code (remplacement par lib Kazuhiko Arase)
+
 v1.0.0 - Janvier 2025
 - Interface Web complète
 - Contrôle des 8 relais via OSC
