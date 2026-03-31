@@ -176,6 +176,15 @@ Informations système, redémarrage et réinitialisation usine.
 
 > Les adresses individuelles sont personnalisables via l'interface Web.
 
+### Commandes système OSC
+
+| Adresse | Valeur | Description |
+|---|---|---|
+| `/ap` | `1` | Allumer le point d'accès Wi-Fi |
+| `/ap` | `0` | Éteindre le point d'accès Wi-Fi |
+
+> L'AP s'éteint automatiquement après **5 minutes sans client** connecté. La commande `/ap 1` le rallume à tout moment.
+
 ### Types de données acceptés
 
 | Type OSC | Tag | Comportement |
@@ -209,6 +218,12 @@ oscsend 192.168.0.1 8000 /relay/all i 1
 # Éteindre tous les relais
 oscsend 192.168.0.1 8000 /relay/all i 0
 
+# Éteindre le Wi-Fi AP
+oscsend 192.168.0.1 8000 /ap i 0
+
+# Rallumer le Wi-Fi AP
+oscsend 192.168.0.1 8000 /ap i 1
+
 # Toggle le relais 4
 oscsend 192.168.0.1 8000 /relay/4 f 1.0
 ```
@@ -230,6 +245,12 @@ client.send_message("/relay/all", 1)
 
 # Éteindre tous les relais
 client.send_message("/relay/all", 0)
+
+# Éteindre le Wi-Fi AP
+client.send_message("/ap", 0)
+
+# Rallumer le Wi-Fi AP
+client.send_message("/ap", 1)
 ```
 
 #### Logiciels compatibles
