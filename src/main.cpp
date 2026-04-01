@@ -53,6 +53,9 @@ static unsigned long gApLastClientSeen = 0;  // dernier moment avec client conne
 static bool gApForcedOff = false;            // désactivé via OSC
 static bool gApReloadPending = false;        // hot-reload AP différé post-HTTP
 static unsigned long gApReloadTime = 0;
+static bool gRebootPending = false;          // reboot différé post-HTTP
+static bool gFactoryResetPending = false;    // factory reset différé post-HTTP
+static unsigned long gPendingActionTime = 0;
 
 // 📨 OSC message log ring buffer
 static constexpr int OSC_LOG_SIZE = 20;
@@ -536,20 +539,17 @@ void setupWebServer() {
   // 🔄 API: POST /api/system/reboot - Redémarrer l'ESP32
   gWeb.on("/api/system/reboot", HTTP_POST, []() {
     gWeb.send(200, "text/plain", "Rebooting...");
-    delay(1000);
+    gRebootPending = true;
+    gPendingActionTime = millis();
     LOG_WARN("SYS", "User initiated reboot");
-    ESP.restart();
   });
 
   // 🗑️ API: POST /api/system/factoryreset - Réinitialisation usine
   gWeb.on("/api/system/factoryreset", HTTP_POST, []() {
     gWeb.send(200, "text/plain", "Factory reset...");
-    
+    gFactoryResetPending = true;
+    gPendingActionTime = millis();
     LOG_ERROR("SYS", "Factory reset initiated - clearing all config");
-    gStore.factoryReset();
-    
-    delay(1000);
-    ESP.restart();
   });
 
   // ⚡ API: GET /api/live - Endpoint combiné haute fréquence (snprintf, pas ArduinoJson)
@@ -759,7 +759,13 @@ void loop() {
     gApLastClientSeen = millis();
     LOG_INFO("WEB", "WiFi AP reloaded: SSID=%s", gCfg.apSsid);
   }
-
+  // 🔄 REBOOT / FACTORY RESET différé (500ms après envoi HTTP)
+  if ((gRebootPending || gFactoryResetPending) && (now - gPendingActionTime >= 500)) {
+    if (gFactoryResetPending) {
+      gStore.factoryReset();
+    }
+    ESP.restart();
+  }
   // �💡 LED activity update (retour au vert après flash bleu OSC)
   LedStatus::update();
 
