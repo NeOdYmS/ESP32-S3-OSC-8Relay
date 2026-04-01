@@ -194,6 +194,11 @@ void handleSystemOsc(const char* address, bool value) {
     LOG_INFO("OSC", "🔄 Reboot requested via OSC");
     delay(200);
     ESP.restart();
+  } else if (strcmp(address, "/factory-reset") == 0 && value) {
+    LOG_INFO("OSC", "🏭 Factory reset requested via OSC");
+    gStore.factoryReset();
+    delay(200);
+    ESP.restart();
   }
 }
 

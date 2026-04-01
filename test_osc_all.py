@@ -99,13 +99,21 @@ send("Unknown /relay/99",  "/relay/99",  "i", 1)
 print("\n--- Cleanup ---")
 send("ALL OFF final", "/relay/all", "i", 0)
 
-# ===== 8. /reboot (DERNIER) =====
+# ===== 8. /reboot (optionnel) =====
 if "--reboot" in sys.argv:
-    print("\n--- 8. /reboot (DERNIER TEST) ---")
+    print("\n--- 8. /reboot (optionnel) ---")
     send("REBOOT", "/reboot", "i", 1)
     print("  >>> ESP32 va redemarrer...")
 else:
     print("\n--- 8. /reboot SKIP (ajouter --reboot pour tester) ---")
+
+# ===== 9. /factory-reset (DESTRUCTIF — efface la config NVS) =====
+if "--factory-reset" in sys.argv:
+    print("\n--- 9. /factory-reset (DESTRUCTIF) ---")
+    send("FACTORY RESET", "/factory-reset", "i", 1)
+    print("  >>> ESP32 va effacer la config et redemarrer...")
+else:
+    print("\n--- 9. /factory-reset SKIP (ajouter --factory-reset pour tester) ---")
 
 sock.close()
 

@@ -4,6 +4,14 @@ Toutes les évolutions notables du projet sont documentées ici.
 
 ---
 
+## [v1.2.7] — Avril 2026 — Unreleased
+
+### Ajouté
+- Commande OSC `/factory-reset` : efface la configuration NVS (reset usine) et redémarre l'ESP32
+- Option `--factory-reset` dans `test_osc_all.py` pour tester la commande (destructif)
+
+---
+
 ## [v1.2.6] — Avril 2026 — Tests validés
 
 ### Résultats tests OSC (1 avril 2026)
