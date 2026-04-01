@@ -4,6 +4,39 @@ Toutes les évolutions notables du projet sont documentées ici.
 
 ---
 
+## [v1.3.0] — Avril 2026
+
+### Fonctionnalités
+- **Tableau des Paramètres OSC disponibles** : card de référence dans l'onglet Relais & OSC listant toutes les adresses acceptées (`/relay/N`, `/relay/all`, `/ap`, `/reboot`, `/factory-reset`) avec type OSC, valeurs et description — traduit dans les 5 langues
+- **`/factory-reset` OSC** : désormais routé correctement dans `osc_router.cpp` (était routé uniquement dans `main.cpp`)
+- **Ethernet renommé "Ethernet OSC"** dans l'interface Web et toutes les traductions
+
+### Corrections
+- **fix: DHCP toggle pleine largeur** — le toggle DHCP occupe toute la largeur de la card, hostname déplacé en dessous
+- **fix: `/factory-reset` manquant dans le routeur OSC** — ajouté à la condition `_sysCb` de `OscRelayRouter::parseOscMessage()`
+
+### Tests validés (1 avril 2026)
+
+**Commandes — 50/50 tests OK** (`test_osc_all.py`)
+- Relais individuels int32, float32, T/F tags (relais 1–8)
+- `/relay/all` (i/f/T/F), `/ap` ON/OFF
+- Edge cases : val=42, val=-1, float=0.5, float=-0.1
+- Adresses inconnues silencieusement ignorées
+
+**Performances — `test_osc_latency.py`**
+
+| Mesure | Résultat |
+|---|---|
+| UDP send latency (avg) | 559 µs (38–2996 µs) |
+| Toggle rapide avg | 150 µs · ~6 600 cycles/s |
+| Burst 8 relais ON | 0.35 ms (43 µs/msg) |
+| Burst 8 relais OFF | 0.35 ms (44 µs/msg) |
+| Throughput max | **38 141 msg/s** (26 µs/msg) |
+| ICMP ping min/avg/max | 0.27 / 0.52 / 0.81 ms |
+| Latence totale OSC→relais | **~0.5–1.2 ms** |
+
+---
+
 ## [v1.2.8] — Avril 2026
 
 ### Améliorations UI

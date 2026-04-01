@@ -12,7 +12,7 @@ Firmware pour la carte **Waveshare ESP32-S3-ETH-8DI-8RO** permettant de piloter 
 - **ALL ON / ALL OFF** : boutons web + commande OSC `/relay/all`
 - **Interface Web** complète accessible via Wi-Fi AP (point d'accès)
 - **Log unifié temps réel** dans le header web : messages système (vert) + OSC entrants (bleu) fusionnés
-- **Sélecteur de langue** discret en haut à droite (FR/EN/ES/DE/ZH)
+- **Sélecteur de langue** discret en haut à droite (🇫🇷 FR / 🇬🇧 EN / 🇪🇸 ES / 🇩🇪 DE / 🇨🇳 ZH)
 - **Affichage OSC entrants** : adresse, type tag et valeur en temps réel
 - **QR code WiFi** dans l'onglet Réseau pour connexion rapide
 - **Température CPU** affichée dans l'onglet Système
@@ -22,30 +22,34 @@ Firmware pour la carte **Waveshare ESP32-S3-ETH-8DI-8RO** permettant de piloter 
 - **Inversion logique** configurable par relais
 - **Mise en veille AP** : timeout configurable (défaut 5 min, 0 = toujours actif)
 - **LED RGB** de statut (WS2812) : bleu au boot, flash bleu sur réception OSC, vert = OK, rouge = erreur
-- **Watchdog** matériel (10s) pour redémarrage automatique en cas de crash
+- **Watchdog** matériel (10 s) pour redémarrage automatique en cas de crash
 - **Protection mutex** contre les accès concurrents Web/OSC aux relais
 - **Portail captif** : redirection automatique vers l'interface Web à la connexion WiFi
-- **Boucle OSC prioritaire** : drain multi-paquets, sauvegarde NVS différée, ~0.5-1.2ms de latence
-- **Changelog intégré** dans l'onglet Système (source: `CHANGELOG.md`)
+- **Boucle OSC prioritaire** : drain multi-paquets, sauvegarde NVS différée, ~0.5–1.2 ms de latence
+- **DHCP avec fallback APIPA** 169.254.x.x/16 si aucun serveur DHCP n'est disponible
+- **Tableau de référence OSC** dans l'UI : toutes les adresses, types et valeurs acceptées
+- **Changelog intégré** dans l'onglet Système (GitHub Releases + fallback CHANGELOG.md embarqué)
 
 ---
 
-## ⚡ Performances OSC (v1.2.4)
+## ⚡ Performances OSC (v1.3.0)
 
-Résultats mesurés sur Ethernet W5500 (UDP, 192.168.0.1:8000) :
+Résultats mesurés sur Ethernet W5500 (UDP, 192.168.0.1:8000) — 1 avril 2026 :
 
 | Métrique | Résultat |
 |---|---|
-| **Latence UDP envoi** | ~114 µs (32-233 µs) |
-| **Ping réseau W5500 (ICMP)** | 0.29 - 0.73 ms (avg 0.46 ms) |
-| **Burst 8 relais** | ~0.83 ms pour les 8 |
-| **Throughput max** | ~49 559 msg/s |
-| **Latence totale OSC → relais** | **~0.5 - 1.2 ms** |
+| **Latence UDP envoi (avg)** | ~559 µs (38–2996 µs) |
+| **Toggle rapide avg** | ~150 µs · ~6 600 cycles/s théorique |
+| **Ping réseau W5500 (ICMP)** | 0.27 – 0.81 ms (avg 0.52 ms) |
+| **Burst 8 relais ON** | ~0.35 ms (43 µs/msg) |
+| **Burst 8 relais OFF** | ~0.35 ms (44 µs/msg) |
+| **Throughput max** | ~38 141 msg/s (26 µs/msg) |
+| **Latence totale OSC → relais** | **~0.5 – 1.2 ms** |
 
 Décomposition de la latence totale :
-- Réseau UDP W5500 : ~0.3-0.7 ms
-- Parsing OSC ESP32 : ~0.01-0.05 ms
-- Écriture I2C PCA9554 (100 kHz) : ~0.2-0.5 ms
+- Réseau UDP W5500 : ~0.3–0.7 ms (ICMP)
+- Parsing OSC ESP32 : ~0.01–0.05 ms
+- Écriture I2C PCA9554 (100 kHz) : ~0.2–0.5 ms
 
 ---
 
@@ -155,17 +159,19 @@ Contrôle en temps réel des 8 relais et configuration des adresses OSC par rela
 - **Boutons ON/OFF** : contrôle direct de chaque relais
 - **ALL ON / ALL OFF** : active ou désactive les 8 relais d'un coup
 - **Log unifié** : bandeau temps réel affichant messages système (vert) et OSC entrants (bleu)
-- **Adresse OSC** : chemin OSC personnalisable (ex: `/relay/1`, `/scene/light/3`)
+- **Port d'écoute OSC (UDP)** : configurable directement depuis l'onglet
+- **Tableau des paramètres OSC disponibles** : référence complète de toutes les adresses acceptées
+- **Adresses OSC des Relais** : chemin OSC personnalisable par relais (ex: `/relay/1`, `/scene/light/3`)
 - **Inverser logique** : inverse l'état physique du relais
 - **Mode** : Latch (valeur directe) ou Toggle (basculement à chaque impulsion)
 
 ### Onglet Réseau
 
-Configuration de l'Ethernet (W5500) et du point d'accès Wi-Fi.
+Configuration de l'Ethernet OSC (W5500) et du point d'accès Wi-Fi.
 
 ![Onglet Réseau](docs/screenshots/tab_network.png)
 
-- **Ethernet** : IP statique ou DHCP, masque, passerelle, DNS, port OSC
+- **Ethernet OSC** : IP statique ou DHCP (avec fallback APIPA 169.254.x.x/16), masque, passerelle, DNS, hostname
 - **Wi-Fi AP** : SSID, mot de passe, IP du point d'accès, **délai de mise en veille** (0 = infini)
 - **QR code WiFi** : généré automatiquement pour connexion rapide au point d'accès
 
