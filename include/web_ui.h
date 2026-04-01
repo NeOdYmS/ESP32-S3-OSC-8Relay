@@ -211,10 +211,6 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
             <input id="apMask" placeholder="255.255.255.0">
           </div>
           <div class="form-group">
-            <label data-i18n="ap_gw">Passerelle AP</label>
-            <input id="apGw" placeholder="192.168.4.1">
-          </div>
-          <div class="form-group">
             <label data-i18n="ap_timeout">Mise en veille AP (minutes)</label>
             <input id="apTimeout" type="number" min="0" placeholder="5">
             <small style="color:#888;" data-i18n="ap_timeout_info">0 = toujours actif (pas de mise en veille)</small>
@@ -408,7 +404,6 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
         document.getElementById('apPass').value = cfg.apPass;
         document.getElementById('apIp').value = cfg.apIp;
         document.getElementById('apMask').value = cfg.apMask;
-        document.getElementById('apGw').value = cfg.apGw;
         document.getElementById('apTimeout').value = cfg.apTimeoutMin;
         updateWifiQR();
 
@@ -597,7 +592,7 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
         apPass: document.getElementById('apPass').value,
         apIp: document.getElementById('apIp').value,
         apMask: document.getElementById('apMask').value,
-        apGw: document.getElementById('apGw').value,
+        apGw: document.getElementById('apIp').value,
         apTimeoutMin: parseInt(document.getElementById('apTimeout').value) || 0
       };
       try {

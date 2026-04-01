@@ -471,7 +471,7 @@ void setupWebServer() {
     strlcpy(gCfg.apPass, doc["apPass"], sizeof(gCfg.apPass));
     gCfg.apIp.fromString(doc["apIp"].as<String>());
     gCfg.apMask.fromString(doc["apMask"].as<String>());
-    gCfg.apGw.fromString(doc["apGw"].as<String>());
+    gCfg.apGw = gCfg.apIp;  // La passerelle AP = IP de l'ESP (toujours)
     gCfg.apTimeoutMin = doc["apTimeoutMin"] | 5;
 
     gStore.save(gCfg);
