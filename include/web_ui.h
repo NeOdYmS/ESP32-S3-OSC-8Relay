@@ -80,6 +80,9 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
     .lang-btn { background:none; border:1px solid transparent; border-radius:6px; padding:2px 4px; font-size:18px; cursor:pointer; line-height:1; transition:border-color 0.2s, background 0.2s; }
     .lang-btn:hover { border-color:#3d444d; background:#21262d; }
     .lang-btn.active { border-color:#238636; background:#0d2318; }
+    /* Champs désactivés DHCP */
+    .eth-static-fields.disabled input { opacity:0.4; pointer-events:none; }
+    .eth-static-fields.disabled label { opacity:0.4; }
     /* Toggle switch */
     .ap-toggle-row { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:#161b22; border-radius:8px; border:1px solid #30363d; margin-bottom:16px; }
     .ap-toggle-label { font-size:14px; font-weight:600; color:#e6edf3; }
@@ -142,6 +145,19 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
           <span id="saveRelaysMsg"></span>
         </div>
       </div>
+      <div class="card">
+        <h2>⚡ <span data-i18n="osc_port">Port d'écoute OSC (UDP)</span></h2>
+        <div class="grid-2">
+          <div class="form-group">
+            <label data-i18n="osc_port">Port UDP</label>
+            <input id="oscPort" type="number" min="1024" max="65535" placeholder="8000">
+          </div>
+        </div>
+        <div class="button-group" style="margin-top: 16px;">
+          <button id="saveOscPort" data-i18n="save_btn">💾 Sauvegarder</button>
+          <span id="saveOscPortMsg"></span>
+        </div>
+      </div>
     </div>
 
     <!-- ONGLET: RÉSEAU -->
@@ -160,6 +176,8 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
             <label data-i18n="hostname">Hostname</label>
             <input id="hostname" placeholder="esp32-relay-osc">
           </div>
+        </div>
+        <div class="eth-static-fields grid-2" id="ethStaticFields">
           <div class="form-group">
             <label data-i18n="ip_addr">Adresse IP</label>
             <input id="ethIp" placeholder="192.168.1.50">
@@ -179,10 +197,6 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
           <div class="form-group">
             <label>DNS 2</label>
             <input id="ethDns2" placeholder="1.1.1.1">
-          </div>
-          <div class="form-group">
-            <label data-i18n="osc_port">Port d'écoute OSC (UDP)</label>
-            <input id="oscPort" type="number" min="1024" max="65535" placeholder="8000">
           </div>
         </div>
         <div class="button-group">
@@ -403,6 +417,7 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
         document.getElementById('ethDns2').value = cfg.eth.dns2;
         document.getElementById('oscPort').value = cfg.oscListenPort;
         document.getElementById('oscPortView').textContent = cfg.oscListenPort;
+        updateEthStaticFields(cfg.eth.dhcp);
 
         // WiFi AP
         document.getElementById('apAllow').checked = cfg.wifiApAllowed;
@@ -524,6 +539,10 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
     }
 
     // Save functions
+    function updateEthStaticFields(dhcp) {
+      document.getElementById('ethStaticFields').classList.toggle('disabled', dhcp);
+    }
+
     function showMessage(elemId, text, isError = false) {
       const el = document.getElementById(elemId);
       el.textContent = text;
@@ -553,6 +572,29 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
         }
       } catch (e) {
         showMessage('saveRelaysMsg', t('net_error'), true);
+      }
+    });
+
+    document.getElementById('ethDhcp').addEventListener('change', function() {
+      updateEthStaticFields(this.checked);
+    });
+
+    document.getElementById('saveOscPort').addEventListener('click', async () => {
+      const port = parseInt(document.getElementById('oscPort').value);
+      try {
+        const resp = await fetch(`${API_BASE}/config/network`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oscListenPort: port, _oscOnly: true })
+        });
+        if (resp.ok) {
+          document.getElementById('oscPortView').textContent = port;
+          showMessage('saveOscPortMsg', '✓ ' + t('net_saved_reboot'));
+        } else {
+          showMessage('saveOscPortMsg', '✗ ' + t('save_error'), true);
+        }
+      } catch (e) {
+        showMessage('saveOscPortMsg', t('net_error'), true);
       }
     });
 
