@@ -62,8 +62,8 @@ const fakeLive = {
 };
 
 const fakeChangelog = [
-  {tag_name:"v1.2.6",name:"Changelog lie aux GitHub Releases",html_url:"https://github.com/NeOdYmS/ESP32-S3-OSC-8Relay/releases/tag/v1.2.6",published_at:"2026-04-01T00:00:00Z",body:"### Ameliorations UI\\n- Changelog synchronise avec GitHub Releases\\n- Fallback firmware embarque si hors ligne"},
-  {tag_name:"v1.2.5",name:"Drapeaux langue + portail captif dynamique",html_url:"https://github.com/NeOdYmS/ESP32-S3-OSC-8Relay/releases/tag/v1.2.5",published_at:"2026-04-01T00:00:00Z",body:"### Ameliorations UI\\n- Selecteur langue remplace par boutons drapeaux\\n- Portail captif : redirections dynamiques\\n### Robustesse API\\n- Validation JSON sur tous les endpoints POST"}
+  {tag_name:"v1.3.0",name:"Tableau params OSC, fix /factory-reset, Ethernet OSC",html_url:"https://github.com/NeOdYmS/ESP32-S3-OSC-8Relay/releases/tag/v1.3.0",published_at:"2026-04-01T00:00:00Z",body:"### Nouvelles fonctionnalites\\n- Tableau complet des parametres OSC disponibles dans l'onglet Relais & OSC\\n- Commande `/factory-reset` correctement routee par le moteur OSC\\n- Section reseau renommee 'Ethernet OSC'\\n### Tests\\n- 50/50 tests OSC OK\\n- Throughput 38 141 msg/s, latence 0.5-1.2 ms"},
+  {tag_name:"v1.2.8",name:"Refonte UI complete",html_url:"https://github.com/NeOdYmS/ESP32-S3-OSC-8Relay/releases/tag/v1.2.8",published_at:"2026-04-01T00:00:00Z",body:"### Ameliorations UI\\n- Port OSC deplace avant les adresses relais\\n- Toggle DHCP pleine largeur\\n- Traductions revues (5 langues)"}
 ];
 const origFetch = window.fetch;
 window.fetch = async function(url, opts) {
