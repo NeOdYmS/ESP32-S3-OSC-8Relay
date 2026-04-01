@@ -2,80 +2,103 @@
 
 Toutes les évolutions notables du projet sont documentées ici.
 
-## v1.2.4 - Avril 2026
+---
 
-- Interface web multilingue avec selecteur de langue en haut a droite (mode discret)
-- Traduction de l'interface en 5 langues: FR, EN, ES, DE, ZH
-- Log unifie optimise:
-- Auto-scroll activable/desactivable
-- Bouton Clear visible (style corrige)
-- Redimensionnement manuel du panneau log (drag)
-- Historique log augmente a 200 lignes
-- Preservation de la position de scroll lorsque l'auto-scroll est inactif
-- Endpoint combine `/api/live` pour reduire les requetes web et conserver la priorite OSC
-- Rafraichissement en polling chaine (~30 ms de pause entre cycles)
-- Affichage RAM clarifie (alerte uniquement en critique + indicateur dans infos systeme)
-- Section Changelog de l'onglet Systeme synchronisee avec ce fichier
+## [v1.2.4] — Avril 2026
 
-### Resultats OSC (tests Avril 2026)
+### Nouvelles fonctionnalités
+- Interface web multilingue : sélecteur de langue discret en haut à droite (FR, EN, ES, DE, ZH)
+- Endpoint combiné `/api/live` : une seule requête HTTP par cycle (relais + système + OSC log)
+- Polling chaîné côté JS (~30 ms de pause entre cycles) avec garde `liveBusy` contre l empilement
 
-- UDP send latency: ~114 us (32-233 us)
-- Toggle relay 1 (50 cycles): ~362 us moyenne, 18.1 ms total
-- Burst 8 relais: ~0.83 ms (~101-107 us/message)
-- `/relay/all` (10 cycles): ~241 us moyenne
-- Throughput max: ~49 559 msg/s (1000 messages en 20.2 ms)
-- Ping W5500: 0.29-0.73 ms (moyenne 0.46 ms)
-- Latence estimee OSC -> relais: ~0.5-1.2 ms
+### Améliorations UI
+- Log OSC : auto-scroll activable/désactivable, bouton **Clear** visible (rouge)
+- Redimensionnement manuel du panneau log par glisser-déposer
+- Historique log porté à 200 lignes avec préservation de la position de scroll
+- Indicateur santé RAM dans l onglet Système - alerte uniquement si critique
 
-## v1.2.3 - Mars 2026
+### Performances OSC (tests Avril 2026)
+| Mesure | Résultat |
+|---|---|
+| Débit max | **~49 559 msg/s** (1 000 msg en 20,2 ms) |
+| Latence UDP send | ~114 us avg (32-233 us) |
+| Toggle relais 1 (50 cycles) | ~362 us avg, 18,1 ms total |
+| Burst 8 relais | ~0,83 ms (~101-107 us/msg) |
+| `/relay/all` (10 cycles) | ~241 us avg |
+| Ping W5500 | 0,29-0,73 ms (avg 0,46 ms) |
+| Latence estimée OSC vers relais | **~0,5-1,2 ms** |
 
-- Refresh log OSC x4: 1000ms -> 250ms pour suivi temps reel
-- Refresh status systeme: 3000ms -> 2000ms
-- Refresh etat relais: 2000ms -> 1000ms
-- UI responsive mobile: adaptation auto smartphone/tablette (media queries)
-- Grilles 4->2 colonnes sur mobile, boutons pleine largeur, inputs tactiles agrandis
+---
 
-## v1.2.2 - Mars 2026
+## [v1.2.3] — Mars 2026
 
-- LED bleue sur reception OSC: flash bleu 50ms a chaque message OSC recu
-- Retour automatique au vert apres le flash
+### Améliorations
+- Rafraîchissement log OSC x4 : 1 000 ms vers 250 ms pour suivi temps réel
+- Rafraîchissement état système : 3 000 ms vers 2 000 ms
+- Rafraîchissement état relais : 2 000 ms vers 1 000 ms
+- UI responsive mobile : adaptation automatique smartphone/tablette (media queries)
+- Grilles 4 vers 2 colonnes sur mobile, boutons pleine largeur, inputs tactiles agrandis
 
-## v1.2.1 - Mars 2026
+---
 
-- Commande OSC `/reboot`: redemarrage a distance via OSC
-- Fix LED RGB: correction ordre couleurs (NEO_GRB -> NEO_RGB) pour carte Waveshare
-- Fix LED rouge permanente: suppression try/catch parasite dans la boucle status
-- Tests OSC complets: 52 tests valides (relais i/f/T/F, `/relay/all`, `/ap`, `/reboot`)
+## [v1.2.2] — Mars 2026
 
-## v1.2.0 - Mars 2026
+### Nouvelles fonctionnalités
+- LED bleue sur réception OSC : flash bleu 50 ms à chaque message reçu, retour automatique au vert
 
-- Optimisation latence OSC: boucle prioritaire sans throttle
+---
+
+## [v1.2.1] — Mars 2026
+
+### Corrections and améliorations
+- Commande OSC `/reboot` : redémarrage à distance
+- Fix LED RGB : correction de l ordre des couleurs (NEO_GRB vers NEO_RGB) pour la carte Waveshare
+- Fix LED rouge permanente : suppression du try/catch parasite dans la boucle status
+- Suite de tests OSC complète : 52 tests validés (relais i/f/T/F, `/relay/all`, `/ap`, `/reboot`)
+
+---
+
+## [v1.2.0] — Mars 2026
+
+### Optimisations OSC
+- Boucle OSC prioritaire sans throttle
 - Drain complet des paquets UDP par cycle (multi-packet par pass)
-- Sauvegarde NVS differee (500ms) pour ne pas bloquer le relais
-- Web/DNS throttle a 5ms pour liberer le CPU au profit de l'OSC
-- Remplacement `delay(1)` par `yield()` dans la boucle principale
-- Logs PCA9554 non-bloquants (macros `LOG_RELAY`/`LOG_ERROR`)
-- Portail captif DNS pour redirection auto apres connexion WiFi
-- Resultats latence: ~0.5-1.2ms OSC->relais, ~70k msg/s throughput
+- Sauvegarde NVS différée (500 ms) pour ne pas bloquer le relais
+- Web/DNS throttlé à 5 ms pour libérer le CPU au profit de l OSC
+- Remplacement de `delay(1)` par `yield()` dans la boucle principale
+- Logs PCA9554 non-bloquants (macros `LOG_RELAY` / `LOG_ERROR`)
 
-## v1.1.0 - Mars 2026
+### Nouvelles fonctionnalités
+- Portail captif DNS pour redirection automatique après connexion WiFi
 
-- Log unifie temps reel: messages systeme (vert) + OSC entrants (bleu) fusionnes dans le header
-- Affichage des messages OSC entrants avec adresse, type tag et valeur
-- QR code WiFi (qrcode-generator v1.4.4) dans l'onglet Reseau
-- Temperature CPU dans l'onglet Systeme
+### Performances OSC (tests Mars 2026)
+| Mesure | Résultat |
+|---|---|
+| Débit | ~70 000 msg/s |
+| Latence OSC vers relais | ~0,5-1,2 ms |
+
+---
+
+## [v1.1.0] — Mars 2026
+
+### Nouvelles fonctionnalités
+- Log unifié temps réel : messages système (vert) + OSC entrants (bleu) fusionnés dans le header
+- Affichage des messages OSC avec adresse, type tag et valeur
+- QR code WiFi (bibliothèque Kazuhiko Arase) dans l onglet Réseau
+- Température CPU dans l onglet Système
 - Timeout AP configurable (0 = toujours actif)
-- Panneau Systeme (uptime, RAM, ETH, relais actifs)
-- Boutons ALL ON / ALL OFF (web + OSC `/relay/all`)
-- Commande OSC `/ap` (ON/OFF du point d'acces)
-- Extinction auto du WiFi AP apres timeout sans clients
-- Endpoint `/api/system/status` + `/api/osc/log`
-- Fix generateur QR code (remplacement par lib Kazuhiko Arase)
+- Panneau Système : uptime, RAM, état ETH, relais actifs
+- Boutons **ALL ON** / **ALL OFF** (web + OSC `/relay/all`)
+- Commande OSC `/ap` (activation/désactivation du point d accès)
+- Extinction automatique du WiFi AP après timeout sans clients
+- Endpoints `/api/system/status` et `/api/osc/log`
 
-## v1.0.0 - Janvier 2026
+---
 
-- Interface Web complete
-- Controle des 8 relais via OSC
-- Configuration Ethernet (DHCP/statique)
-- Support WiFi AP optionnel (via DI8)
-- Stockage config en EEPROM
+## [v1.0.0] — Janvier 2026
+
+### Version initiale
+- Interface Web complète de contrôle des 8 relais
+- Contrôle des relais via messages OSC UDP
+- Configuration Ethernet (DHCP / IP statique)
+- Support WiFi AP optionnel (activé via DI8)
