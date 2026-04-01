@@ -4,7 +4,35 @@ Toutes les évolutions notables du projet sont documentées ici.
 
 ---
 
-## [v1.2.6] — Avril 2026
+## [v1.2.6] — Avril 2026 — Tests validés
+
+### Résultats tests OSC (1 avril 2026)
+
+**Commandes — 52/52 tests OK** (`test_osc_all.py --reboot`)
+- Relais individuels int32, float32, T/F tags (relais 1–8)
+- `/relay/all` (i/f/T/F)
+- `/ap` ON/OFF, `/ap/enable`
+- Edge cases : val=42, val=-1, float=0.5, float=-0.1
+- Adresses inconnues silencieusement ignorées
+- `/reboot` OSC — redémarrage confirmé ✅
+
+**Performances — `test_osc_latency.py`**
+
+| Mesure | Résultat |
+|---|---|
+| UDP send latency (avg) | 145 µs |
+| UDP send latency (min) | 82 µs |
+| Rapid toggle avg | 417 µs |
+| Burst 8 relais ON | 0.44 ms (55 µs/msg) |
+| Burst 8 relais OFF | 0.58 ms (73 µs/msg) |
+| Throughput max | **46 600 msg/s** |
+| Latence/msg throughput | 21 µs |
+| ICMP ping min/avg/max | 0.29 / 0.50 / 0.58 ms |
+| Latence totale OSC→relais | **~0.5–1.2 ms** |
+
+---
+
+
 
 ### Améliorations UI
 - Changelog de l'onglet Système synchronisé avec GitHub Releases (fetch navigateur)
