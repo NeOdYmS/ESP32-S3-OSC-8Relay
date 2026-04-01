@@ -682,6 +682,9 @@ void setup() {
     if (gStore.checkFirmwareBuild(BUILD_STAMP)) {
       LOG_WARN("CFG", "🆕 New firmware detected (%s) — factory reset applied", BUILD_STAMP);
       Serial.printf("[MAIN] New firmware: factory reset done\n");
+      // Sauvegarder les défauts en NVS pour éviter qu'une ancienne valeur persistée réapparaisse
+      AppCfg def = ConfigStore::defaults();
+      gStore.save(def);
     }
   }
 

@@ -76,8 +76,10 @@ bool ConfigStore::load(AppCfg& out) {
   prefs.getString("apSsid", c.apSsid, sizeof(c.apSsid));
   prefs.getString("apPass", c.apPass, sizeof(c.apPass));
 
-  // If previous defaults are stored, upgrade to new SSID/pass automatically
-  if (strlen(c.apSsid) == 0 || strcmp(c.apSsid, "RelayOSC") == 0) {
+  // Migration : anciens SSID connus → nouvelle valeur par défaut
+  if (strlen(c.apSsid) == 0 ||
+      strcmp(c.apSsid, "RelayOSC") == 0 ||
+      strcmp(c.apSsid, "ESP32-OSC-8DI8RO") == 0) {
     strlcpy(c.apSsid, "ESP32-S3-OSC-8RELAY", sizeof(c.apSsid));
   }
   if (strcmp(c.apPass, "relayosc123") == 0) {
