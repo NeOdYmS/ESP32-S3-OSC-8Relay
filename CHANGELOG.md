@@ -4,6 +4,19 @@ Toutes les évolutions notables du projet sont documentées ici.
 
 ---
 
+## [v1.2.5] — Avril 2026
+
+### Améliorations UI
+- Sélecteur de langue remplacé par des boutons drapeaux emoji (🇫🇷 🇬🇧 🇪🇸 🇩🇪 🇨🇳) en haut à droite
+- Drapeau actif mis en évidence par un contour vert
+- Portail captif : redirections dynamiques basées sur l'IP AP configurée (plus codée en dur 192.168.4.1)
+
+### Robustesse API Web
+- Validation stricte du JSON sur tous les endpoints POST (`/api/relays/*`, `/api/config/*`)
+- Retour HTTP 400 explicite si payload invalide ou champ manquant
+
+---
+
 ## [v1.2.4] — Avril 2026
 
 ### Nouvelles fonctionnalités

@@ -90,6 +90,14 @@ void updatePhysicalRelay(uint8_t idx);
 void updateAllPhysicalRelays();
 void setupRGB(uint8_t r, uint8_t g, uint8_t b);
 
+static String getCaptivePortalRedirectUrl() {
+  IPAddress apIp = NETMGR.getWiFiAPIP();
+  if (apIp == IPAddress(0, 0, 0, 0)) {
+    apIp = gCfg.apIp;
+  }
+  return String("http://") + apIp.toString() + "/";
+}
+
 // ========== Legacy stub (kept for compatibility, now uses LedStatus) ==========
 void setupRGB(uint8_t r, uint8_t g, uint8_t b) {
   LedStatus::setRGB(r, g, b);
@@ -208,41 +216,41 @@ void setupWebServer() {
   // Apple iOS/macOS
   gWeb.on("/hotspot-detect.html", []() {
     LOG_INFO("WEB", "🌐 Captive portal (Apple) from %s", gWeb.client().remoteIP().toString().c_str());
-    gWeb.sendHeader("Location", "http://192.168.4.1/");
+    gWeb.sendHeader("Location", getCaptivePortalRedirectUrl());
     gWeb.send(302, "text/plain", "");
   });
   // Android
   gWeb.on("/generate_204", []() {
     LOG_INFO("WEB", "🌐 Captive portal (Android) from %s", gWeb.client().remoteIP().toString().c_str());
-    gWeb.sendHeader("Location", "http://192.168.4.1/");
+    gWeb.sendHeader("Location", getCaptivePortalRedirectUrl());
     gWeb.send(302, "text/plain", "");
   });
   gWeb.on("/gen_204", []() {
-    gWeb.sendHeader("Location", "http://192.168.4.1/");
+    gWeb.sendHeader("Location", getCaptivePortalRedirectUrl());
     gWeb.send(302, "text/plain", "");
   });
   // Windows
   gWeb.on("/connecttest.txt", []() {
     LOG_INFO("WEB", "🌐 Captive portal (Windows) from %s", gWeb.client().remoteIP().toString().c_str());
-    gWeb.sendHeader("Location", "http://192.168.4.1/");
+    gWeb.sendHeader("Location", getCaptivePortalRedirectUrl());
     gWeb.send(302, "text/plain", "");
   });
   gWeb.on("/ncsi.txt", []() {
-    gWeb.sendHeader("Location", "http://192.168.4.1/");
+    gWeb.sendHeader("Location", getCaptivePortalRedirectUrl());
     gWeb.send(302, "text/plain", "");
   });
   gWeb.on("/redirect", []() {
-    gWeb.sendHeader("Location", "http://192.168.4.1/");
+    gWeb.sendHeader("Location", getCaptivePortalRedirectUrl());
     gWeb.send(302, "text/plain", "");
   });
   // Firefox
   gWeb.on("/success.txt", []() {
-    gWeb.sendHeader("Location", "http://192.168.4.1/");
+    gWeb.sendHeader("Location", getCaptivePortalRedirectUrl());
     gWeb.send(302, "text/plain", "");
   });
   // Microsoft NCSI
   gWeb.on("/fwlink", []() {
-    gWeb.sendHeader("Location", "http://192.168.4.1/");
+    gWeb.sendHeader("Location", getCaptivePortalRedirectUrl());
     gWeb.send(302, "text/plain", "");
   });
 
@@ -258,7 +266,7 @@ void setupWebServer() {
     }
     LOG_INFO("WEB", "🌐 Captive redirect: %s from %s", 
       uri.c_str(), gWeb.client().remoteIP().toString().c_str());
-    gWeb.sendHeader("Location", "http://192.168.4.1/");
+    gWeb.sendHeader("Location", getCaptivePortalRedirectUrl());
     gWeb.send(302, "text/plain", "");
   });
 
@@ -327,7 +335,11 @@ void setupWebServer() {
       LOG_DEBUG("WEB", "⚡ POST /api/relays/%d from %s", i, gWeb.client().remoteIP().toString().c_str());
       String body = gWeb.arg("plain");
       StaticJsonDocument<128> doc;
-      deserializeJson(doc, body);
+      DeserializationError err = deserializeJson(doc, body);
+      if (err) {
+        gWeb.send(400, "text/plain", "Invalid JSON");
+        return;
+      }
       
       if (doc.containsKey("state")) {
         handleRelayCommand(i, doc["state"].as<bool>());
@@ -343,7 +355,11 @@ void setupWebServer() {
     LOG_DEBUG("WEB", "⚡ POST /api/relays/all from %s", gWeb.client().remoteIP().toString().c_str());
     String body = gWeb.arg("plain");
     StaticJsonDocument<128> doc;
-    deserializeJson(doc, body);
+    DeserializationError err = deserializeJson(doc, body);
+    if (err) {
+      gWeb.send(400, "text/plain", "Invalid JSON");
+      return;
+    }
 
     if (doc.containsKey("state")) {
       bool state = doc["state"].as<bool>();
@@ -360,7 +376,16 @@ void setupWebServer() {
   gWeb.on("/api/config/relays", HTTP_POST, []() {
     String body = gWeb.arg("plain");
     StaticJsonDocument<1024> doc;
-    deserializeJson(doc, body);
+    DeserializationError err = deserializeJson(doc, body);
+    if (err) {
+      gWeb.send(400, "text/plain", "Invalid JSON");
+      return;
+    }
+
+    if (!doc["relays"].is<JsonArray>()) {
+      gWeb.send(400, "text/plain", "Missing relays array");
+      return;
+    }
 
     JsonArray relays = doc["relays"];
     for (int i = 0; i < 8 && i < (int)relays.size(); i++) {
@@ -381,7 +406,11 @@ void setupWebServer() {
   gWeb.on("/api/config/network", HTTP_POST, []() {
     String body = gWeb.arg("plain");
     StaticJsonDocument<512> doc;
-    deserializeJson(doc, body);
+    DeserializationError err = deserializeJson(doc, body);
+    if (err) {
+      gWeb.send(400, "text/plain", "Invalid JSON");
+      return;
+    }
 
     gCfg.hostname[0] = 0;
     if (doc.containsKey("hostname")) {
@@ -425,7 +454,11 @@ void setupWebServer() {
   gWeb.on("/api/config/ap", HTTP_POST, []() {
     String body = gWeb.arg("plain");
     StaticJsonDocument<512> doc;
-    deserializeJson(doc, body);
+    DeserializationError err = deserializeJson(doc, body);
+    if (err) {
+      gWeb.send(400, "text/plain", "Invalid JSON");
+      return;
+    }
 
     gCfg.wifiApAllowed = doc["wifiApAllowed"];
     strlcpy(gCfg.apSsid, doc["apSsid"], sizeof(gCfg.apSsid));

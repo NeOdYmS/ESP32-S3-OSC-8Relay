@@ -67,8 +67,8 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
       .relay-btn { padding: 12px; font-size: 14px; }
       input, select { font-size: 14px; padding: 10px 12px; }
       button { padding: 12px 16px; font-size: 14px; }
-      #langWrap { top:8px; right:8px; }
-      #langSel { min-width:68px; font-size:10px; padding:2px 6px; }
+      #langWrap { top:8px; right:8px; gap:2px; }
+      .lang-btn { font-size:15px; padding:1px 3px; }
     }
     @media (max-width: 480px) {
       .grid-4 { grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -76,22 +76,20 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
       #unifiedLog { max-height: 100px; font-size: 9px; }
       h1 { font-size: 18px; }
     }
-    #langWrap { position:absolute; top:10px; right:14px; opacity:0.82; }
-    #langSel { width:auto; min-width:76px; padding:3px 8px; background:#0d1117; border:1px solid #30363d; border-radius:999px; color:#8b949e; font-size:11px; cursor:pointer; }
-    #langSel:hover { opacity:1; color:#c9d1d9; border-color:#3d444d; }
-    #langSel:focus { outline:none; border-color:#238636; color:#c9d1d9; }
+    #langWrap { position:absolute; top:10px; right:14px; opacity:0.85; display:flex; gap:3px; }
+    .lang-btn { background:none; border:1px solid transparent; border-radius:6px; padding:2px 4px; font-size:18px; cursor:pointer; line-height:1; transition:border-color 0.2s, background 0.2s; }
+    .lang-btn:hover { border-color:#3d444d; background:#21262d; }
+    .lang-btn.active { border-color:#238636; background:#0d2318; }
   </style>
 </head>
 <body>
   <header>
     <div id="langWrap">
-      <select id="langSel" onchange="setLang(this.value)">
-        <option value="fr">FR</option>
-        <option value="en">EN</option>
-        <option value="es">ES</option>
-        <option value="de">DE</option>
-        <option value="zh">ZH</option>
-      </select>
+      <button class="lang-btn" title="Français" onclick="setLang('fr')">🇫🇷</button>
+      <button class="lang-btn" title="English" onclick="setLang('en')">🇬🇧</button>
+      <button class="lang-btn" title="Español" onclick="setLang('es')">🇪🇸</button>
+      <button class="lang-btn" title="Deutsch" onclick="setLang('de')">🇩🇪</button>
+      <button class="lang-btn" title="中文" onclick="setLang('zh')">🇨🇳</button>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <h1>⚡ RelayOSC</h1>
@@ -348,7 +346,10 @@ v1.0.0 - Janvier 2026
     function applyLang() {
       document.querySelectorAll('[data-i18n]').forEach(function(el) { el.textContent = t(el.dataset.i18n); });
       document.querySelectorAll('[data-i18n-html]').forEach(function(el) { el.innerHTML = t(el.dataset.i18nHtml); });
-      document.getElementById('langSel').value = LANG;
+      document.querySelectorAll('.lang-btn').forEach(function(btn) {
+        var l = btn.getAttribute('onclick').match(/'([a-z]+)'/);
+        btn.classList.toggle('active', l && l[1] === LANG);
+      });
     }
 
     // QR Code generator - qrcode-generator v1.4.4 by Kazuhiko Arase (MIT License)
