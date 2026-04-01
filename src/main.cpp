@@ -504,6 +504,65 @@ void setupWebServer() {
     ESP.restart();
   });
 
+  // ⚡ API: GET /api/live - Endpoint combiné haute fréquence (snprintf, pas ArduinoJson)
+  // Fusionne relay status + system status + OSC log en une seule requête
+  // Polling à 100ms côté client : 10 req/sec au lieu de 5.5 avec 3 endpoints séparés
+  gWeb.on("/api/live", HTTP_GET, []() {
+    char buf[2048];
+    int len = 0;
+
+    // Relays
+    len += snprintf(buf + len, sizeof(buf) - len,
+      "{\"r\":[%d,%d,%d,%d,%d,%d,%d,%d],",
+      gRelayLogical[0]?1:0, gRelayLogical[1]?1:0,
+      gRelayLogical[2]?1:0, gRelayLogical[3]?1:0,
+      gRelayLogical[4]?1:0, gRelayLogical[5]?1:0,
+      gRelayLogical[6]?1:0, gRelayLogical[7]?1:0);
+
+    // System (compact keys for minimal payload)
+    unsigned long sec = millis() / 1000;
+    len += snprintf(buf + len, sizeof(buf) - len,
+      "\"up\":%lu,\"heap\":%u,\"hmin\":%u,"
+      "\"eth\":%s,\"eip\":\"%s\","
+      "\"ap\":%s,\"aip\":\"%s\",\"acl\":%d,"
+      "\"t\":%.1f,\"oP\":%u,\"aSsid\":\"%s\",\"aTo\":%u,",
+      sec, ESP.getFreeHeap(), ESP.getMinFreeHeap(),
+      NETMGR.isEthernetConnected() ? "true" : "false",
+      NETMGR.getEthernetIP().toString().c_str(),
+      NETMGR.isWiFiAPActive() ? "true" : "false",
+      WiFi.softAPIP().toString().c_str(),
+      WiFi.softAPgetStationNum(),
+      temperatureRead(),
+      gCfg.oscListenPort,
+      gCfg.apSsid,
+      gCfg.apTimeoutMin);
+
+    // OSC messages (delta: only new since "since" param)
+    String sinceStr = gWeb.arg("since");
+    unsigned long since = sinceStr.length() > 0 ? strtoul(sinceStr.c_str(), NULL, 10) : 0;
+
+    len += snprintf(buf + len, sizeof(buf) - len, "\"osc\":[");
+    bool first = true;
+    int start = (gOscLogCount < OSC_LOG_SIZE) ? 0 : gOscLogHead;
+    for (int i = 0; i < gOscLogCount; i++) {
+      int idx = (start + i) % OSC_LOG_SIZE;
+      if (gOscLog[idx].ts > since) {
+        if (!first) { buf[len++] = ','; }
+        len += snprintf(buf + len, sizeof(buf) - len,
+          "{\"ts\":%lu,\"a\":\"%s\",\"t\":\"%s\",\"v\":\"%s\"}",
+          gOscLog[idx].ts,
+          gOscLog[idx].address,
+          gOscLog[idx].typeTag,
+          gOscLog[idx].value);
+        first = false;
+        if (len > (int)sizeof(buf) - 128) break;
+      }
+    }
+    len += snprintf(buf + len, sizeof(buf) - len, "]}");
+
+    gWeb.send(200, "application/json", buf);
+  });
+
   gWeb.begin();
   LOG_INFO("WEB", "Web Server started on port 80");
 }

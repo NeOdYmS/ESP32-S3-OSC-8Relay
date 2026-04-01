@@ -12,6 +12,7 @@ Firmware pour la carte **Waveshare ESP32-S3-ETH-8DI-8RO** permettant de piloter 
 - **ALL ON / ALL OFF** : boutons web + commande OSC `/relay/all`
 - **Interface Web** complète accessible via Wi-Fi AP (point d'accès)
 - **Log unifié temps réel** dans le header web : messages système (vert) + OSC entrants (bleu) fusionnés
+- **Sélecteur de langue** discret en haut à droite (FR/EN/ES/DE/ZH)
 - **Affichage OSC entrants** : adresse, type tag et valeur en temps réel
 - **QR code WiFi** dans l'onglet Réseau pour connexion rapide
 - **Température CPU** affichée dans l'onglet Système
@@ -25,19 +26,20 @@ Firmware pour la carte **Waveshare ESP32-S3-ETH-8DI-8RO** permettant de piloter 
 - **Protection mutex** contre les accès concurrents Web/OSC aux relais
 - **Portail captif** : redirection automatique vers l'interface Web à la connexion WiFi
 - **Boucle OSC prioritaire** : drain multi-paquets, sauvegarde NVS différée, ~0.5-1.2ms de latence
+- **Changelog intégré** dans l'onglet Système (source: `CHANGELOG.md`)
 
 ---
 
-## ⚡ Performances OSC (v1.2.0)
+## ⚡ Performances OSC (v1.2.4)
 
 Résultats mesurés sur Ethernet W5500 (UDP, 192.168.0.1:8000) :
 
 | Métrique | Résultat |
 |---|---|
-| **Latence UDP envoi** | ~100 µs (min 32 µs) |
-| **Ping réseau W5500 (ICMP)** | 0.3 - 0.77 ms (avg 0.54 ms) |
-| **Burst 8 relais** | ~1 ms pour les 8 |
-| **Throughput max** | ~70 000 msg/s |
+| **Latence UDP envoi** | ~114 µs (32-233 µs) |
+| **Ping réseau W5500 (ICMP)** | 0.29 - 0.73 ms (avg 0.46 ms) |
+| **Burst 8 relais** | ~0.83 ms pour les 8 |
+| **Throughput max** | ~49 559 msg/s |
 | **Latence totale OSC → relais** | **~0.5 - 1.2 ms** |
 
 Décomposition de la latence totale :

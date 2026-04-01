@@ -41,29 +41,31 @@ const fakeConfig = {
     {oscAddress: "/relay/8", invert: false, mode: 0}
   ]
 };
-const fakeStatus = [true, false, true, false, true, false, false, true];
-const fakeSystemStatus = {
-  uptime: "0d 01:23:45",
-  ethConnected: true,
-  ethIp: "192.168.0.1",
-  wifiApActive: true,
-  wifiApIp: "192.168.4.1",
-  freeHeap: 281344,
-  minFreeHeap: 265000,
-  oscPort: 8000,
-  apSsid: "ESP32-S3-OSC-8RELAY",
-  relays: [true, false, true, false, true, false, false, true],
-  apClients: 1,
-  apTimeoutMin: 5,
-  cpuTemp: 42.3
+const fakeLive = {
+  r: [1, 0, 1, 0, 1, 0, 0, 1],
+  up: 5025,
+  heap: 281344,
+  hmin: 265000,
+  eth: true,
+  eip: "192.168.0.1",
+  ap: true,
+  aip: "192.168.4.1",
+  acl: 1,
+  t: 42.3,
+  oP: 8000,
+  aSsid: "ESP32-S3-OSC-8RELAY",
+  aTo: 5,
+  osc: [
+    {ts: 1711929601000, a: "/relay/1", t: "i", v: "1"},
+    {ts: 1711929601300, a: "/relay/all", t: "i", v: "0"}
+  ]
 };
 
 const origFetch = window.fetch;
 window.fetch = async function(url, opts) {
   if (typeof url === 'string') {
-    if (url.includes('/api/system/status')) return new Response(JSON.stringify(fakeSystemStatus), {status: 200});
+    if (url.includes('/api/live')) return new Response(JSON.stringify(fakeLive), {status: 200});
     if (url.includes('/api/config')) return new Response(JSON.stringify(fakeConfig), {status: 200});
-    if (url.includes('/api/relays/status')) return new Response(JSON.stringify(fakeStatus), {status: 200});
     if (url.includes('/api/relays/')) return new Response('{}', {status: 200});
   }
   return origFetch(url, opts);
