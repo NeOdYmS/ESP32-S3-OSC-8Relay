@@ -75,11 +75,21 @@ void NetworkManager::startEthernet(const AppCfg* cfg) {
   if (cfg->eth.dhcp) {
     LOG_INFO("NET", "Starting W5500 with DHCP...");
     if (Ethernet.begin(mac) == 0) {
-      LOG_ERROR("NET", "❌ Failed to configure W5500 via DHCP");
-      _ethConnected = false;
-      return;
+      // Échec DHCP → fallback APIPA 169.254.mac[4].mac[5]
+      uint8_t a = mac[4];  // 0xFE = 254
+      uint8_t b = mac[5];  // dernier octet de l'IP statique configurée
+      if (b == 0)   b = 1;    // éviter .0
+      if (b == 255) b = 254;  // éviter .255
+      IPAddress apipaIp(169, 254, a, b);
+      IPAddress apipaGw(0, 0, 0, 0);
+      IPAddress apipaMask(255, 255, 0, 0);
+      IPAddress apipaDns(0, 0, 0, 0);
+      LOG_WARN("NET", "⚠️ DHCP failed — APIPA fallback: %s/16", apipaIp.toString().c_str());
+      Ethernet.begin(mac, apipaIp, apipaDns, apipaGw, apipaMask);
+      _ethIp = apipaIp;
+    } else {
+      _ethIp = Ethernet.localIP();
     }
-    _ethIp = Ethernet.localIP();
   } else {
     LOG_INFO("NET", "Starting W5500 with static IP: %s", cfg->eth.ip.toString().c_str());
     Ethernet.begin(mac, cfg->eth.ip, cfg->eth.dns1, cfg->eth.gw, cfg->eth.mask);
