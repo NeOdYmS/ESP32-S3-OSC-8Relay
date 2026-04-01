@@ -80,6 +80,15 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
     .lang-btn { background:none; border:1px solid transparent; border-radius:6px; padding:2px 4px; font-size:18px; cursor:pointer; line-height:1; transition:border-color 0.2s, background 0.2s; }
     .lang-btn:hover { border-color:#3d444d; background:#21262d; }
     .lang-btn.active { border-color:#238636; background:#0d2318; }
+    /* Toggle switch */
+    .ap-toggle-row { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:#161b22; border-radius:8px; border:1px solid #30363d; margin-bottom:16px; }
+    .ap-toggle-label { font-size:14px; font-weight:600; color:#e6edf3; }
+    .toggle-switch { position:relative; display:inline-block; width:50px; height:28px; flex-shrink:0; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; cursor:pointer; inset:0; background:#21262d; border-radius:28px; border:1px solid #30363d; transition:.3s; }
+    .toggle-slider:before { position:absolute; content:""; height:20px; width:20px; left:3px; bottom:3px; background:#8b949e; border-radius:50%; transition:.3s; }
+    .toggle-switch input:checked + .toggle-slider { background:#238636; border-color:#2ea043; }
+    .toggle-switch input:checked + .toggle-slider:before { transform:translateX(22px); background:#fff; }
   </style>
 </head>
 <body>
@@ -187,13 +196,14 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
         <div class="info-box" data-i18n-html="ap_info">
           L'AP WiFi démarre automatiquement et s'éteint après le délai configuré (0 = toujours actif).
         </div>
+        <div class="ap-toggle-row">
+          <span class="ap-toggle-label" data-i18n="allow_ap">Activer l'accès Point</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="apAllow">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
         <div class="grid-2">
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" id="apAllow">
-              <span data-i18n="allow_ap">Activer l'accès Point</span>
-            </label>
-          </div>
           <div class="form-group">
             <label data-i18n="ssid_label">SSID (nom du réseau WiFi)</label>
             <input id="apSsid" placeholder="RelayOSC">
@@ -209,7 +219,7 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(<!DOCTYPE html>
           <div class="form-group">
             <label data-i18n="ap_timeout">Mise en veille AP (minutes)</label>
             <input id="apTimeout" type="number" min="0" placeholder="5">
-            <small style="color:#888;" data-i18n="ap_timeout_info">0 = toujours actif (pas de mise en veille)</small>
+            <small style="color:#888;" data-i18n="ap_timeout_info">0 = toujours actif</small>
           </div>
         </div>
         <div class="button-group">
